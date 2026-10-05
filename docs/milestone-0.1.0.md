@@ -20,7 +20,7 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 
 | ID | Deliverable / owned paths | Dependencies | State | Jules session |
 | --- | --- | --- | --- | --- |
-| M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Dispatched from `7411a31` | `6412285179774184537` |
+| M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Integrated and verified | `6412285179774184537` |
 | M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Dispatched from `c692b13` | `4325102533201049110` |
 | M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Dispatched from `c692b13` | `14253481875008285439` |
 | M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Dispatched from `c692b13` | `9272682563869501346` |
@@ -42,3 +42,4 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - Initial coordinator base: `0a79dce66592119b83d8ea1da089b2e9a686b60a` (`origin/master`).
 - Jules CLI v0.1.42 installed and authenticated; repository connected.
 - Local Rust 1.97.1 available. Coverage tooling and embedded targets are not installed initially.
+- M01: retrieved final patch through CLI; excluded the stale ledger copied into Jules's diff. Coordinator corrected ADR date, enforced fixed depth/attribute/text caps and added direct overflow tests. 17 unit tests pass; independent cargo-llvm-cov reports 100% lines/functions/regions. fmt, clippy and warnings-denied docs pass. Rust 1.85 and ARM/RISC-V no_std builds pass.
