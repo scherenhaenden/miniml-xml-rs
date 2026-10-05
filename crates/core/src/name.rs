@@ -40,6 +40,12 @@ pub fn is_name_char(c: char) -> bool {
         )
 }
 
+/// Returns whether `value` is a non-empty XML 1.0 `Name`.
+pub fn is_valid_name(value: &str) -> bool {
+    let mut chars = value.chars();
+    matches!(chars.next(), Some(first) if is_name_start_char(first)) && chars.all(is_name_char)
+}
+
 pub fn parse_name<'a>(cursor: &mut Cursor<'a>) -> Result<&'a str, NameError> {
     let start_pos = cursor.position().byte_offset;
     let mut current_len = 0;
@@ -69,6 +75,85 @@ pub fn parse_name<'a>(cursor: &mut Cursor<'a>) -> Result<&'a str, NameError> {
     cursor.advance(current_len)?;
 
     Ok(result)
+}
+
+#[cfg(test)]
+mod character_tests {
+    use super::*;
+
+    #[test]
+    fn xml_name_start_ranges_and_gaps() {
+        for c in [
+            ':',
+            'A',
+            '_',
+            'a',
+            '\u{00C0}',
+            '\u{00D6}',
+            '\u{00D8}',
+            '\u{00F6}',
+            '\u{00F8}',
+            '\u{02FF}',
+            '\u{0370}',
+            '\u{037D}',
+            '\u{037F}',
+            '\u{1FFF}',
+            '\u{200C}',
+            '\u{200D}',
+            '\u{2070}',
+            '\u{218F}',
+            '\u{2C00}',
+            '\u{2FEF}',
+            '\u{3001}',
+            '\u{D7FF}',
+            '\u{F900}',
+            '\u{FDCF}',
+            '\u{FDF0}',
+            '\u{FFFD}',
+            '\u{10000}',
+            '\u{EFFFF}',
+        ] {
+            assert!(is_name_start_char(c), "{c:?}");
+            assert!(is_name_char(c), "{c:?}");
+        }
+        for c in [
+            '\u{00D7}',
+            '\u{00F7}',
+            '\u{037E}',
+            '\u{200B}',
+            '\u{2FF0}',
+            '\u{FFFE}',
+            '\u{F0000}',
+        ] {
+            assert!(!is_name_start_char(c), "{c:?}");
+            assert!(!is_name_char(c), "{c:?}");
+        }
+    }
+
+    #[test]
+    fn xml_name_extra_character_ranges() {
+        for c in [
+            '-', '.', '0', '9', '\u{00B7}', '\u{0300}', '\u{036F}', '\u{203F}', '\u{2040}',
+        ] {
+            assert!(is_name_char(c), "{c:?}");
+        }
+        assert!(!is_name_char('/'));
+        assert!(is_name_start_char(':'));
+        assert!(is_name_char(':'));
+        for c in ['-', '.', '0', '\u{00B7}', '\u{0300}', '\u{203F}'] {
+            assert!(!is_name_start_char(c));
+        }
+    }
+
+    #[test]
+    fn complete_name_validation_requires_a_valid_nonempty_name() {
+        for name in ["name", ":prefixed", "α-β", "a\u{0300}"] {
+            assert!(is_valid_name(name), "{name:?}");
+        }
+        for name in ["", "1name", "has space", "name/part"] {
+            assert!(!is_valid_name(name), "{name:?}");
+        }
+    }
 }
 
 #[cfg(test)]
@@ -126,8 +211,8 @@ mod tests {
 fn test_cursor_error_propagation() {
     let mut cursor = Cursor::new(b"\x00").unwrap();
     let err = parse_name(&mut cursor).unwrap_err();
-    match err {
-        NameError::CursorError(crate::cursor::CursorError::InvalidXmlChar { offset: 0 }) => (),
-        _ => panic!("Expected CursorError"),
-    }
+    assert_eq!(
+        err,
+        NameError::CursorError(crate::cursor::CursorError::InvalidXmlChar { offset: 0 })
+    );
 }
