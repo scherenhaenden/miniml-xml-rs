@@ -8,7 +8,9 @@
 pub mod budget;
 pub mod config;
 pub mod convert;
+pub mod cursor;
 pub mod error;
+pub mod name;
 pub mod schema;
 pub mod sink;
 

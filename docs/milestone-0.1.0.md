@@ -21,9 +21,9 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | ID | Deliverable / owned paths | Dependencies | State | Jules session |
 | --- | --- | --- | --- | --- |
 | M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Integrated and verified | `6412285179774184537` |
-| M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Dispatched from `c692b13` | `4325102533201049110` |
+| M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Integrated; 57 core tests, lint/docs pass | `4325102533201049110` |
 | M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Dispatched from `c692b13` | `14253481875008285439` |
-| M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Dispatched from `c692b13` | `9272682563869501346` |
+| M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Integrated and verified in `339b9fe` | `9272682563869501346` |
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
 | M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
 | M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
@@ -44,4 +44,5 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - Local Rust 1.97.1 available. Coverage tooling and embedded targets are not installed initially.
 - M01: retrieved final patch through CLI; excluded the stale ledger copied into Jules's diff. Coordinator corrected ADR date, enforced fixed depth/attribute/text caps and added direct overflow tests. 17 unit tests pass; independent cargo-llvm-cov reports 100% lines/functions/regions. fmt, clippy and warnings-denied docs pass. Rust 1.85 and ARM/RISC-V no_std builds pass.
 - M01 mutation baseline: `cargo mutants --file crates/core/src/budget.rs --file crates/core/src/config.rs --jobs 4 --timeout 30 -- --lib` tested 58 mutations: 57 caught, one equivalent survivor (`ParserConfig::builder` already returns `ParserConfigBuilder::default()`, so replacing it with `Default::default()` is identical). No unexplained survivor.
-- M08: CLI result reviewed; coordinator corrected default branch to master, made builds locked, explicitly selects stable and installs LLVM coverage tooling. Coverage report stays in GitHub artifacts. Local script passes baseline format/lint/unit/docs/coverage/MSRV/embedded checks; full parser/integration/adversarial evidence remains pending M06/M07.
+- M08: CLI result reviewed; coordinator corrected default branch to master, made builds locked, explicitly selects stable and installs LLVM coverage tooling. Coverage report stays in GitHub artifacts. Local script passes baseline format/lint/unit/docs/coverage/MSRV/embedded checks; full parser/integration/adversarial evidence remains pending M06/M07. Coverage export directory fix is committed in `69bf746`.
+- M04: integrated from the reviewed CLI patch in `339b9fe`; schema graph validation is iterative and bounded, conversion handles signed i64 boundaries, and sink text is explicitly borrowed or decoded. Local core tests, clippy, docs and independent unit coverage pass. Jules opened a separate PR for the same task; coordinator branch is the integration source of truth.
