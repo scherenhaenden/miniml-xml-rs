@@ -27,7 +27,7 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
 | M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
 | M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
-| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | Dispatched from `aaae8e3` | `8372780934571335340` |
+| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | CI/scripts integrated; full parser gates pending | `8372780934571335340` |
 | M09 | Final supported profile, README, changelog, coverage/regression closure and version reference | M07, M08 | Planned | — |
 
 ## Open decision
@@ -44,3 +44,4 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - Local Rust 1.97.1 available. Coverage tooling and embedded targets are not installed initially.
 - M01: retrieved final patch through CLI; excluded the stale ledger copied into Jules's diff. Coordinator corrected ADR date, enforced fixed depth/attribute/text caps and added direct overflow tests. 17 unit tests pass; independent cargo-llvm-cov reports 100% lines/functions/regions. fmt, clippy and warnings-denied docs pass. Rust 1.85 and ARM/RISC-V no_std builds pass.
 - M01 mutation baseline: `cargo mutants --file crates/core/src/budget.rs --file crates/core/src/config.rs --jobs 4 --timeout 30 -- --lib` tested 58 mutations: 57 caught, one equivalent survivor (`ParserConfig::builder` already returns `ParserConfigBuilder::default()`, so replacing it with `Default::default()` is identical). No unexplained survivor.
+- M08: CLI result reviewed; coordinator corrected default branch to master, made builds locked, explicitly selects stable and installs LLVM coverage tooling. Coverage report stays in GitHub artifacts. Local script passes baseline format/lint/unit/docs/coverage/MSRV/embedded checks; full parser/integration/adversarial evidence remains pending M06/M07.
