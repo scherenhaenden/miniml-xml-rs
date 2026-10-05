@@ -1,9 +1,33 @@
-#![no_std]
 #![forbid(unsafe_code)]
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SinkError {
     RejectedByApplication,
+}
+
+/// A string borrowed from input or decoded into a temporary fixed buffer.
+/// Retain `Borrowed` for the input lifetime; copy `Decoded` during the call.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TextValue<'input, 'call> {
+    Borrowed(&'input str),
+    Decoded(&'call str),
+}
+
+impl<'input> TextValue<'input, '_> {
+    /// Returns text for the duration of this value's borrow, without allocation.
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Borrowed(s) => s,
+            Self::Decoded(s) => s,
+        }
+    }
+    /// Returns only a string whose lifetime is tied to the original input.
+    pub fn borrowed(&self) -> Option<&'input str> {
+        match self {
+            Self::Borrowed(s) => Some(s),
+            Self::Decoded(_) => None,
+        }
+    }
 }
 
 /// TargetSink lifetime-safe strategy receiving validated element/attribute content and node IDs.
@@ -21,7 +45,11 @@ pub trait TargetSink<'a> {
     }
 
     /// Called to provide string content for an element.
-    fn element_string_content(&mut self, node_id: u16, content: &'a str) -> Result<(), SinkError> {
+    fn element_string_content(
+        &mut self,
+        node_id: u16,
+        content: TextValue<'a, '_>,
+    ) -> Result<(), SinkError> {
         let _ = (node_id, content);
         Ok(())
     }
@@ -37,7 +65,7 @@ pub trait TargetSink<'a> {
         &mut self,
         node_id: u16,
         name: &'a str,
-        content: &'a str,
+        content: TextValue<'a, '_>,
     ) -> Result<(), SinkError> {
         let _ = (node_id, name, content);
         Ok(())
@@ -59,6 +87,18 @@ pub trait TargetSink<'a> {
 mod tests {
     use super::*;
 
+    #[test]
+    fn borrowed_and_decoded_strings_have_distinct_retention_contracts() {
+        let input = "source";
+        let borrowed = TextValue::Borrowed(input);
+        assert_eq!(borrowed.as_str(), input);
+        assert_eq!(borrowed.borrowed(), Some(input));
+        let buffer = *b"dec";
+        let decoded = TextValue::Decoded(core::str::from_utf8(&buffer).unwrap());
+        assert_eq!(decoded.as_str(), "dec");
+        assert_eq!(decoded.borrowed(), None);
+    }
+
     struct DummySink;
 
     impl<'a> TargetSink<'a> for DummySink {}
@@ -69,9 +109,15 @@ mod tests {
 
         assert_eq!(sink.begin_element(0), Ok(()));
         assert_eq!(sink.end_element(0), Ok(()));
-        assert_eq!(sink.element_string_content(0, "content"), Ok(()));
+        assert_eq!(
+            sink.element_string_content(0, TextValue::Borrowed("content")),
+            Ok(())
+        );
         assert_eq!(sink.element_integer_content(0, 123), Ok(()));
-        assert_eq!(sink.attribute_string(0, "attr", "val"), Ok(()));
+        assert_eq!(
+            sink.attribute_string(0, "attr", TextValue::Borrowed("val")),
+            Ok(())
+        );
         assert_eq!(sink.attribute_integer(0, "attr", 123), Ok(()));
     }
 

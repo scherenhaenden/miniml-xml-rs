@@ -1,4 +1,3 @@
-#![no_std]
 #![forbid(unsafe_code)]
 
 /// Consistent with planned parser depth 32 / attrs 16.
@@ -56,11 +55,14 @@ pub enum SchemaError<'a> {
     TooManyNodes,
     TooManyAttributes(SchemaNodeId),
     TooManyChildren(SchemaNodeId),
+    InvalidNodeName(SchemaNodeId),
+    InvalidAttributeName(SchemaNodeId, &'a str),
     DuplicateAttribute(SchemaNodeId, &'a str), // Storing name could be tricky with lifetimes, simplified to str slices
     DuplicateChild(SchemaNodeId, SchemaNodeId),
     MixedContent(SchemaNodeId),
     InvalidOccurrences(SchemaNodeId, SchemaNodeId), // parent, child
     CyclicReference(SchemaNodeId),
+    DepthExceeded(SchemaNodeId),
 }
 
 #[derive(Debug)]
@@ -91,6 +93,10 @@ impl<'a> Schema<'a> {
         for (i, node) in nodes.iter().enumerate() {
             let id = SchemaNodeId(i as u16);
 
+            if !crate::name::is_valid_name(node.name) {
+                return Err(SchemaError::InvalidNodeName(id));
+            }
+
             if node.attributes.len() > MAX_SCHEMA_ATTRS {
                 return Err(SchemaError::TooManyAttributes(id));
             }
@@ -104,6 +110,11 @@ impl<'a> Schema<'a> {
             }
 
             // Check attributes for duplicates
+            for attribute in node.attributes {
+                if !crate::name::is_valid_name(attribute.name) {
+                    return Err(SchemaError::InvalidAttributeName(id, attribute.name));
+                }
+            }
             for j in 0..node.attributes.len() {
                 for k in (j + 1)..node.attributes.len() {
                     if node.attributes[j].name == node.attributes[k].name {
@@ -125,16 +136,17 @@ impl<'a> Schema<'a> {
                 }
 
                 for k in (j + 1)..node.children.len() {
-                    if child.node_id == node.children[k].node_id {
+                    if child.node_id == node.children[k].node_id
+                        || nodes[child.node_id.0 as usize].name
+                            == nodes[node.children[k].node_id.0 as usize].name
+                    {
                         return Err(SchemaError::DuplicateChild(id, child.node_id));
                     }
                 }
             }
         }
 
-        // Depth-bounded cycle check
-        let mut path = [SchemaNodeId(0); MAX_SCHEMA_DEPTH];
-        Self::check_cycles(nodes, root_id, &mut path, 0)?;
+        Self::check_graph(nodes)?;
 
         Ok(Schema {
             nodes,
@@ -143,31 +155,53 @@ impl<'a> Schema<'a> {
         })
     }
 
-    fn check_cycles(
-        nodes: &'a [SchemaNode<'a>],
-        current: SchemaNodeId,
-        path: &mut [SchemaNodeId; MAX_SCHEMA_DEPTH],
-        depth: usize,
-    ) -> Result<(), SchemaError<'a>> {
-        if depth >= MAX_SCHEMA_DEPTH {
-            return Err(SchemaError::CyclicReference(current));
-        }
-
-        for i in 0..depth {
-            if path[i] == current {
-                return Err(SchemaError::CyclicReference(current));
+    // Three-color DFS visits every descriptor once, including disconnected nodes.
+    // Heights memoize shared subtrees; work is O(nodes + edges), stack is fixed.
+    fn check_graph(nodes: &'a [SchemaNode<'a>]) -> Result<(), SchemaError<'a>> {
+        let mut colors = [0u8; MAX_SCHEMA_NODES];
+        let mut heights = [1usize; MAX_SCHEMA_NODES];
+        let mut stack = [(0usize, 0usize); MAX_SCHEMA_DEPTH];
+        for root in 0..nodes.len() {
+            if colors[root] != 0 {
+                continue;
+            }
+            colors[root] = 1;
+            stack[0] = (root, 0);
+            let mut depth = 1;
+            while depth > 0 {
+                let (current, next) = stack[depth - 1];
+                if next < nodes[current].children.len() {
+                    stack[depth - 1].1 += 1;
+                    let child = nodes[current].children[next].node_id.0 as usize;
+                    if colors[child] == 1 {
+                        return Err(SchemaError::CyclicReference(SchemaNodeId(child as u16)));
+                    }
+                    if colors[child] == 0 {
+                        if depth == MAX_SCHEMA_DEPTH {
+                            return Err(SchemaError::DepthExceeded(SchemaNodeId(child as u16)));
+                        }
+                        colors[child] = 1;
+                        stack[depth] = (child, 0);
+                        depth += 1;
+                    } else {
+                        heights[current] = heights[current].max(heights[child] + 1);
+                        if heights[current] > MAX_SCHEMA_DEPTH {
+                            return Err(SchemaError::DepthExceeded(SchemaNodeId(current as u16)));
+                        }
+                    }
+                } else {
+                    colors[current] = 2;
+                    depth -= 1;
+                    if depth > 0 {
+                        let parent = stack[depth - 1].0;
+                        heights[parent] = heights[parent].max(heights[current] + 1);
+                        if heights[parent] > MAX_SCHEMA_DEPTH {
+                            return Err(SchemaError::DepthExceeded(SchemaNodeId(parent as u16)));
+                        }
+                    }
+                }
             }
         }
-
-        path[depth] = current;
-
-        let node = &nodes[current.0 as usize];
-        if node.content == ContentType::Elements {
-            for child in node.children {
-                Self::check_cycles(nodes, child.node_id, path, depth + 1)?;
-            }
-        }
-
         Ok(())
     }
 
@@ -187,6 +221,165 @@ impl<'a> Schema<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn distinct_attributes_are_accepted() {
+        let attrs = [
+            AttributeDescriptor {
+                name: "a",
+                attr_type: AttributeType::String,
+                required: true,
+            },
+            AttributeDescriptor {
+                name: "b",
+                attr_type: AttributeType::Integer,
+                required: false,
+            },
+        ];
+        let nodes = [SchemaNode {
+            name: "root",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &attrs,
+        }];
+        assert!(Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).is_ok());
+    }
+
+    #[test]
+    fn node_and_attribute_names_must_be_valid_xml_names() {
+        let invalid_nodes = [SchemaNode {
+            name: "1root",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &[],
+        }];
+        assert_eq!(
+            Schema::new(&invalid_nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::InvalidNodeName(SchemaNodeId(0))
+        );
+
+        let invalid_attribute = [AttributeDescriptor {
+            name: "bad name",
+            attr_type: AttributeType::String,
+            required: false,
+        }];
+        let nodes = [SchemaNode {
+            name: "root",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &invalid_attribute,
+        }];
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::InvalidAttributeName(SchemaNodeId(0), "bad name")
+        );
+    }
+
+    fn chain<const N: usize>(reverse: bool, expected: Result<(), SchemaError<'static>>) {
+        let mut edges = [ChildDescriptor {
+            node_id: SchemaNodeId(0),
+            min_occurs: 1,
+            max_occurs: 1,
+        }; N];
+        let mut nodes = [SchemaNode {
+            name: "node",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &[],
+        }; N];
+        for (i, edge) in edges.iter_mut().enumerate() {
+            edge.node_id = SchemaNodeId(if reverse { i.saturating_sub(1) } else { i + 1 } as u16);
+        }
+        for (i, node) in nodes.iter_mut().enumerate() {
+            if (reverse && i > 0) || (!reverse && i + 1 < N) {
+                node.content = ContentType::Elements;
+                node.children = &edges[i..i + 1];
+            }
+        }
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).map(|_| ()),
+            expected
+        );
+    }
+
+    #[test]
+    fn graph_depth_and_shared_subtree_boundaries() {
+        chain::<32>(false, Ok(()));
+        chain::<33>(false, Err(SchemaError::DepthExceeded(SchemaNodeId(32))));
+        chain::<32>(true, Ok(()));
+        chain::<33>(true, Err(SchemaError::DepthExceeded(SchemaNodeId(32))));
+    }
+
+    #[test]
+    fn shared_subtree_height_propagates_to_parent() {
+        let mut edges = [ChildDescriptor {
+            node_id: SchemaNodeId(0),
+            min_occurs: 1,
+            max_occurs: 1,
+        }; 32];
+        for (i, edge) in edges.iter_mut().enumerate() {
+            edge.node_id = SchemaNodeId((i + 2) as u16);
+        }
+        edges[31].node_id = SchemaNodeId(1);
+        let root_edges = [
+            ChildDescriptor {
+                node_id: SchemaNodeId(1),
+                min_occurs: 1,
+                max_occurs: 1,
+            },
+            ChildDescriptor {
+                node_id: SchemaNodeId(32),
+                min_occurs: 1,
+                max_occurs: 1,
+            },
+        ];
+        let mut nodes = [SchemaNode {
+            name: "node",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &[],
+        }; 33];
+        nodes[0].content = ContentType::Elements;
+        nodes[0].children = &root_edges;
+        for i in 1..31 {
+            nodes[i].content = ContentType::Elements;
+            nodes[i].children = &edges[i - 1..i];
+        }
+        nodes[32].name = "shared";
+        nodes[32].content = ContentType::Elements;
+        nodes[32].children = &edges[31..32];
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::DepthExceeded(SchemaNodeId(0))
+        );
+    }
+
+    #[test]
+    fn unreachable_cycle_is_rejected() {
+        let edges = [ChildDescriptor {
+            node_id: SchemaNodeId(1),
+            min_occurs: 0,
+            max_occurs: 1,
+        }];
+        let nodes = [
+            SchemaNode {
+                name: "root",
+                content: ContentType::Empty,
+                children: &[],
+                attributes: &[],
+            },
+            SchemaNode {
+                name: "unreachable",
+                content: ContentType::Elements,
+                children: &edges,
+                attributes: &[],
+            },
+        ];
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::CyclicReference(SchemaNodeId(1))
+        );
+    }
 
     #[test]
     fn test_valid_schema() {
@@ -312,6 +505,46 @@ mod tests {
         let err = Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err();
         assert_eq!(
             err,
+            SchemaError::DuplicateChild(SchemaNodeId(0), SchemaNodeId(1))
+        );
+    }
+
+    #[test]
+    fn same_named_children_are_rejected_even_with_distinct_ids() {
+        let children = [
+            ChildDescriptor {
+                node_id: SchemaNodeId(1),
+                min_occurs: 0,
+                max_occurs: 1,
+            },
+            ChildDescriptor {
+                node_id: SchemaNodeId(2),
+                min_occurs: 0,
+                max_occurs: 1,
+            },
+        ];
+        let nodes = [
+            SchemaNode {
+                name: "root",
+                content: ContentType::Elements,
+                children: &children,
+                attributes: &[],
+            },
+            SchemaNode {
+                name: "item",
+                content: ContentType::Integer,
+                children: &[],
+                attributes: &[],
+            },
+            SchemaNode {
+                name: "item",
+                content: ContentType::String,
+                children: &[],
+                attributes: &[],
+            },
+        ];
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
             SchemaError::DuplicateChild(SchemaNodeId(0), SchemaNodeId(1))
         );
     }

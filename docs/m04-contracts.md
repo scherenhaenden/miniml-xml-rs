@@ -16,6 +16,7 @@ The core components reside in `crates/core/src/schema.rs`.
 - **`ChildDescriptor`**: Enforces strict `min_occurs`/`max_occurs` bounds on immediate element children.
 - **`AttributeDescriptor`**: Specifies name, type and optionality of properties bounding an XML element.
 - **`SchemaError`**: Enumeration of static construction-time failures (e.g. invalid lengths, mixed content blocks, structural cyclic bounds violations).
+- Construction validates each node and attribute name as a non-empty XML 1.0 `Name` using the shared M02 rules; namespace QName semantics remain outside this profile.
 
 ### Conversion Logic
 Conversion functions reside in `crates/core/src/convert.rs`.
@@ -26,14 +27,14 @@ Conversion functions reside in `crates/core/src/convert.rs`.
 ### Sink Abstraction
 The traversal logic resides in `crates/core/src/sink.rs`.
 
-- **`TargetSink<'a>`**: The trait describes a linear flow of data from parser elements into consumer interfaces. Receives node IDs mapping directly into `Schema` node dictionaries along with scalar data types (`i64` and `&'a str`).
+- **`TargetSink<'input>`**: Receives node IDs and integer values or `TextValue<'input, 'call>`. `TextValue::Borrowed` can be retained for the input lifetime; `TextValue::Decoded` references a temporary fixed buffer and must be copied during the callback. `as_str()` borrows either form, while `borrowed()` returns `Some` only for input-backed text.
 - **`SinkError`**: Mechanism to gracefully halt traversal with application-defined rejections (`RejectedByApplication`). Note: In this architecture, parse errors mean target output is incomplete, therefore applications assume no success guarantees until an entire document is processed.
 
 ## Memory and Time Characteristics
 
 - **Memory**: O(1) dynamic memory. Total runtime structures strictly depend on `.rodata` and explicit compile-time dimension constants (`MAX_SCHEMA_NODES`, `MAX_SCHEMA_DEPTH`, `MAX_SCHEMA_ATTRS`).
-- **Time**: Static schema validation operations bound linearly (with constants bounded strictly small) relative to dimension maximums limiting potential catastrophic exponential processing.
-- **Lifetimes**: Slices processed at traversal boundaries reference source memory mapping exclusively (`'a`). Consumers can borrow or copy contents without retaining reference chains resulting in dangling objects. All callbacks limit ownership boundaries to active callback frames.
+- **Time**: Structural duplicate checks are bounded by 16 attributes and 32 child descriptors per node. Graph validation uses iterative three-color DFS and memoized heights: O(nodes + edges), including shared subtrees and disconnected components. Depth above 32 and cycles are separate errors; the verifier does not recurse.
+- **Lifetimes**: Schema descriptors borrow their backing slices. Input strings and temporary decoded strings have distinct callback lifetimes enforced by `TextValue`; consumers may retain only input-backed strings or copy temporary text into their own bounded storage.
 
 ## Sample Schema Definition
 
