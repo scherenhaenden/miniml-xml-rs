@@ -16,6 +16,7 @@ The core components reside in `crates/core/src/schema.rs`.
 - **`ChildDescriptor`**: Enforces strict `min_occurs`/`max_occurs` bounds on immediate element children.
 - **`AttributeDescriptor`**: Specifies name, type and optionality of properties bounding an XML element.
 - **`SchemaError`**: Enumeration of static construction-time failures (e.g. invalid lengths, mixed content blocks, structural cyclic bounds violations).
+- Construction validates each node and attribute name as a non-empty XML 1.0 `Name` using the shared M02 rules; namespace QName semantics remain outside this profile.
 
 ### Conversion Logic
 Conversion functions reside in `crates/core/src/convert.rs`.

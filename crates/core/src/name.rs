@@ -40,6 +40,12 @@ pub fn is_name_char(c: char) -> bool {
         )
 }
 
+/// Returns whether `value` is a non-empty XML 1.0 `Name`.
+pub fn is_valid_name(value: &str) -> bool {
+    let mut chars = value.chars();
+    matches!(chars.next(), Some(first) if is_name_start_char(first)) && chars.all(is_name_char)
+}
+
 pub fn parse_name<'a>(cursor: &mut Cursor<'a>) -> Result<&'a str, NameError> {
     let start_pos = cursor.position().byte_offset;
     let mut current_len = 0;
@@ -136,6 +142,16 @@ mod character_tests {
         assert!(is_name_char(':'));
         for c in ['-', '.', '0', '\u{00B7}', '\u{0300}', '\u{203F}'] {
             assert!(!is_name_start_char(c));
+        }
+    }
+
+    #[test]
+    fn complete_name_validation_requires_a_valid_nonempty_name() {
+        for name in ["name", ":prefixed", "α-β", "a\u{0300}"] {
+            assert!(is_valid_name(name), "{name:?}");
+        }
+        for name in ["", "1name", "has space", "name/part"] {
+            assert!(!is_valid_name(name), "{name:?}");
         }
     }
 }

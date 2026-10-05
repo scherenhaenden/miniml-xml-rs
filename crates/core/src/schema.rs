@@ -55,6 +55,8 @@ pub enum SchemaError<'a> {
     TooManyNodes,
     TooManyAttributes(SchemaNodeId),
     TooManyChildren(SchemaNodeId),
+    InvalidNodeName(SchemaNodeId),
+    InvalidAttributeName(SchemaNodeId, &'a str),
     DuplicateAttribute(SchemaNodeId, &'a str), // Storing name could be tricky with lifetimes, simplified to str slices
     DuplicateChild(SchemaNodeId, SchemaNodeId),
     MixedContent(SchemaNodeId),
@@ -91,6 +93,10 @@ impl<'a> Schema<'a> {
         for (i, node) in nodes.iter().enumerate() {
             let id = SchemaNodeId(i as u16);
 
+            if !crate::name::is_valid_name(node.name) {
+                return Err(SchemaError::InvalidNodeName(id));
+            }
+
             if node.attributes.len() > MAX_SCHEMA_ATTRS {
                 return Err(SchemaError::TooManyAttributes(id));
             }
@@ -104,6 +110,11 @@ impl<'a> Schema<'a> {
             }
 
             // Check attributes for duplicates
+            for attribute in node.attributes {
+                if !crate::name::is_valid_name(attribute.name) {
+                    return Err(SchemaError::InvalidAttributeName(id, attribute.name));
+                }
+            }
             for j in 0..node.attributes.len() {
                 for k in (j + 1)..node.attributes.len() {
                     if node.attributes[j].name == node.attributes[k].name {
@@ -232,6 +243,36 @@ mod tests {
             attributes: &attrs,
         }];
         assert!(Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).is_ok());
+    }
+
+    #[test]
+    fn node_and_attribute_names_must_be_valid_xml_names() {
+        let invalid_nodes = [SchemaNode {
+            name: "1root",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &[],
+        }];
+        assert_eq!(
+            Schema::new(&invalid_nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::InvalidNodeName(SchemaNodeId(0))
+        );
+
+        let invalid_attribute = [AttributeDescriptor {
+            name: "bad name",
+            attr_type: AttributeType::String,
+            required: false,
+        }];
+        let nodes = [SchemaNode {
+            name: "root",
+            content: ContentType::Empty,
+            children: &[],
+            attributes: &invalid_attribute,
+        }];
+        assert_eq!(
+            Schema::new(&nodes, SchemaNodeId(0), SCHEMA_VERSION).unwrap_err(),
+            SchemaError::InvalidAttributeName(SchemaNodeId(0), "bad name")
+        );
     }
 
     fn chain<const N: usize>(reverse: bool, expected: Result<(), SchemaError<'static>>) {
