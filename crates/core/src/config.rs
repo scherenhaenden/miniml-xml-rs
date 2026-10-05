@@ -1,3 +1,12 @@
+use crate::error::{ErrorCode, ErrorKind, ParseError, Position};
+
+/// Maximum number of simultaneously open elements in the fixed parser stack.
+pub const MAX_DEPTH: usize = 32;
+/// Maximum number of attributes stored for one start tag.
+pub const MAX_ATTRIBUTES: usize = 16;
+/// Maximum decoded text bytes held in one fixed text buffer.
+pub const MAX_TEXT_BYTES: usize = 256;
+
 /// Configuration for the parser.
 /// Limits control resource exhaustion and are checked before expensive work.
 /// Zero limits have explicit deterministic meanings (e.g., max_attributes_per_element = 0 means attributes are forbidden).
@@ -29,6 +38,22 @@ impl Default for ParserConfig {
 }
 
 impl ParserConfig {
+    /// Checks limits that must fit fixed storage before any input is processed.
+    /// This constant-time check allocates nothing. Zero forbids the resource.
+    pub fn validate(&self, position: Position) -> Result<(), ParseError> {
+        if self.max_depth > MAX_DEPTH
+            || self.max_attributes_per_element > MAX_ATTRIBUTES
+            || self.max_text_bytes > MAX_TEXT_BYTES
+        {
+            return Err(ParseError::new(
+                ErrorKind::Resource,
+                ErrorCode::Resource,
+                position,
+            ));
+        }
+        Ok(())
+    }
+
     /// Returns a new builder for configuring the parser.
     pub fn builder() -> ParserConfigBuilder {
         ParserConfigBuilder::default()
@@ -90,6 +115,44 @@ impl ParserConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fixed_storage_limits_are_checked() {
+        let pos = Position::new(7, 2, 3);
+        let exact = ParserConfig::builder()
+            .max_depth(MAX_DEPTH)
+            .max_attributes_per_element(MAX_ATTRIBUTES)
+            .max_text_bytes(MAX_TEXT_BYTES)
+            .build();
+        assert_eq!(exact.validate(pos), Ok(()));
+        for config in [
+            ParserConfig::builder().max_depth(MAX_DEPTH + 1).build(),
+            ParserConfig::builder()
+                .max_attributes_per_element(MAX_ATTRIBUTES + 1)
+                .build(),
+            ParserConfig::builder()
+                .max_text_bytes(MAX_TEXT_BYTES + 1)
+                .build(),
+        ] {
+            assert_eq!(
+                config.validate(pos),
+                Err(ParseError::new(
+                    ErrorKind::Resource,
+                    ErrorCode::Resource,
+                    pos
+                ))
+            );
+        }
+        assert_eq!(
+            ParserConfig::builder()
+                .max_depth(0)
+                .max_attributes_per_element(0)
+                .max_text_bytes(0)
+                .build()
+                .validate(pos),
+            Ok(())
+        );
+    }
 
     #[test]
     fn test_default_config() {

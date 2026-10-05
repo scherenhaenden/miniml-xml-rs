@@ -1,6 +1,6 @@
 # ADR 011: Milestone 0.1.0 Bootstrap and Profile Constraints
 
-**Date**: 2026-10-15
+**Date**: 2026-10-05
 
 ## Context
 

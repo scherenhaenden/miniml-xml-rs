@@ -1,4 +1,4 @@
-use crate::config::ParserConfig;
+use crate::config::{ParserConfig, MAX_ATTRIBUTES, MAX_DEPTH};
 use crate::error::{ErrorCode, ErrorKind, ParseError, Position};
 
 /// Tracks resource consumption against configured limits.
@@ -74,7 +74,7 @@ impl ResourceBudget {
             .depth
             .checked_add(1)
             .ok_or_else(|| ParseError::new(ErrorKind::Resource, ErrorCode::Resource, position))?;
-        if next > self.config.max_depth {
+        if next > self.config.max_depth.min(MAX_DEPTH) {
             return Err(ParseError::new(
                 ErrorKind::Resource,
                 ErrorCode::Resource,
@@ -104,7 +104,7 @@ impl ResourceBudget {
             .attributes
             .checked_add(1)
             .ok_or_else(|| ParseError::new(ErrorKind::Resource, ErrorCode::Resource, position))?;
-        if next > self.config.max_attributes_per_element {
+        if next > self.config.max_attributes_per_element.min(MAX_ATTRIBUTES) {
             return Err(ParseError::new(
                 ErrorKind::Resource,
                 ErrorCode::Resource,
@@ -157,6 +157,48 @@ impl ResourceBudget {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn arithmetic_overflows_preserve_counts_and_positions() {
+        let pos = Position::new(19, 3, 8);
+        let mut budget = ResourceBudget::new(ParserConfig::default());
+        budget.depth = usize::MAX;
+        budget.attributes = usize::MAX;
+        budget.children = usize::MAX;
+        budget.occurrences = usize::MAX;
+        let expected = Err(ParseError::new(
+            ErrorKind::Resource,
+            ErrorCode::Resource,
+            pos,
+        ));
+        assert_eq!(budget.enter_depth(pos), expected);
+        assert_eq!(budget.consume_attribute(pos), expected);
+        assert_eq!(budget.consume_child(pos), expected);
+        assert_eq!(budget.consume_occurrence(pos), expected);
+        assert_eq!(budget.depth, usize::MAX);
+        assert_eq!(budget.attributes, usize::MAX);
+        assert_eq!(budget.children, usize::MAX);
+        assert_eq!(budget.occurrences, usize::MAX);
+    }
+
+    #[test]
+    fn storage_caps_apply_even_to_unvalidated_configuration() {
+        let pos = Position::default();
+        let mut budget = ResourceBudget::new(
+            ParserConfig::builder()
+                .max_depth(usize::MAX)
+                .max_attributes_per_element(usize::MAX)
+                .build(),
+        );
+        for _ in 0..MAX_DEPTH {
+            assert_eq!(budget.enter_depth(pos), Ok(()));
+        }
+        assert!(budget.enter_depth(pos).is_err());
+        for _ in 0..MAX_ATTRIBUTES {
+            assert_eq!(budget.consume_attribute(pos), Ok(()));
+        }
+        assert!(budget.consume_attribute(pos).is_err());
+    }
 
     #[test]
     fn test_consume_token_exact_and_overflow() {

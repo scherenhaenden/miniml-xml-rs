@@ -13,6 +13,8 @@ A `ParseError` is the single unifying structure returned for parsing failure. It
 ### Configuration (`ParserConfig`, `ResourceBudget`)
 `ParserConfig` is an immutable specification dictating strict runtime parsing limits. `ResourceBudget` is the active, mutable bookkeeping object instantiated with this configuration. During a parse session, various tokens and occurrences are explicitly verified against limits (e.g., `budget.consume_attribute()`), which return explicit `Resource` errors if breached.
 
+The parser must call `ParserConfig::validate(position) -> Result<(), ParseError>` before parsing. Fixed storage caps exported by `config` are `MAX_DEPTH = 32`, `MAX_ATTRIBUTES = 16`, `MAX_TEXT_BYTES = 256`; configurations above these fail deterministically, while zero forbids use. `ResourceBudget::new(config)` owns its configuration. Its `check_document_bytes(bytes, position)`, `check_text_bytes(bytes, position)`, `consume_token(position)`, `enter_depth(position)`, `consume_attribute(position)`, `consume_child(position)` and `consume_occurrence(position)` return `Result<(), ParseError>`. `exit_depth()`, `reset_element_counters()` and `reset_occurrences()` update counters without allocating. Per-element counters are helpers; the runtime must preserve independent parent counters in its bounded stack.
+
 ## Extension Points
 
 Future milestones will build upon these abstractions with specifically purposed modules. We explicitly intend to delegate logic to these independent modules:
