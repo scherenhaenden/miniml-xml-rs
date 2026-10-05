@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
 
 concurrency:
@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: rustup update stable --no-self-update && rustup default stable
       - run: cargo fmt --check
 
   clippy:
@@ -26,50 +27,57 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: rustup update stable --no-self-update && rustup default stable
+      - run: cargo clippy --workspace --locked --all-targets -- -D warnings
 
   test_lib:
     name: Unit Tests (lib)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo test --workspace --lib
+      - run: rustup update stable --no-self-update && rustup default stable
+      - run: cargo test --workspace --locked --lib
 
   test_integration_doc:
     name: Integration & Doc Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo test --workspace --tests
-      - run: cargo test --workspace --doc
+      - run: rustup update stable --no-self-update && rustup default stable
+      - run: cargo test --workspace --locked --tests
+      - run: cargo test --workspace --locked --doc
 
   docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: RUSTDOCFLAGS='-D warnings' cargo doc --workspace --no-deps
+      - run: rustup update stable --no-self-update && rustup default stable
+      - run: RUSTDOCFLAGS='-D warnings' cargo doc --workspace --locked --no-deps
 
   no_std:
     name: no_std Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo check --workspace --no-default-features
+      - run: rustup update stable --no-self-update && rustup default stable
+      - run: cargo check --workspace --locked --no-default-features
 
   msrv:
     name: MSRV Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: rustup update stable --no-self-update && rustup default stable
       - run: rustup default 1.85.0
-      - run: cargo check --workspace
+      - run: cargo check --workspace --locked
 
   cross_compile:
     name: Cross Compile Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: rustup update stable --no-self-update && rustup default stable
       - run: rustup target add thumbv7em-none-eabihf riscv32imac-unknown-none-elf
-      - run: cargo check --workspace --target thumbv7em-none-eabihf
-      - run: cargo check --workspace --target riscv32imac-unknown-none-elf
+      - run: cargo check --workspace --locked --target thumbv7em-none-eabihf
+      - run: cargo check --workspace --locked --target riscv32imac-unknown-none-elf

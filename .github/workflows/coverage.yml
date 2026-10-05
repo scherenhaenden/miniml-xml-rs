@@ -3,7 +3,7 @@ name: Coverage
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
 
 concurrency:
@@ -19,13 +19,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install cargo-llvm-cov
-        uses: taiki-e/install-action@cargo-llvm-cov
-      - name: Run coverage
-        run: cargo llvm-cov --workspace --lib --fail-under-lines 100 --fail-under-functions 100 --lcov --output-path lcov.info
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4
+      - run: rustup update stable --no-self-update && rustup default stable
+      - name: Install coverage tools
+        run: |
+          rustup component add llvm-tools-preview
+          cargo install cargo-llvm-cov --version 0.9.1 --locked
+      - name: Run independent unit coverage
+        run: |
+          mkdir -p target/coverage
+          cargo llvm-cov --workspace --locked --lib --fail-under-lines 100 --fail-under-functions 100 --lcov --output-path target/coverage/unit.lcov
+      - name: Preserve coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: lcov.info
-          fail_ci_if_error: false
+          name: unit-coverage
+          path: target/coverage/unit.lcov
