@@ -20,7 +20,7 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 
 | ID | Deliverable / owned paths | Dependencies | State | Jules session |
 | --- | --- | --- | --- | --- |
-| M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Ready | — |
+| M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Dispatched from `7411a31` | `6412285179774184537` |
 | M02 | UTF-8 cursor, positions and XML names | M01 | Planned | — |
 | M03 | Entity/reference decoding and fixed-capacity text representation | M01 | Planned | — |
 | M04 | Static schema descriptors, minimal integer conversion and sink contracts | M01 | Planned | — |
@@ -32,7 +32,7 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 
 ## Open decision
 
-License is awaiting the owner's selection. Keep manifests unpublished until that is settled. MSRV and initial API/profile details will be recorded by M01 as explicit implementation decisions.
+The owner selected MIT. Keep manifests unpublished during implementation. M01 records MSRV 1.85 and initial API/profile details as explicit implementation decisions.
 
 ## Evidence
 
