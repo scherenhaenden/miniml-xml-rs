@@ -22,12 +22,12 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | --- | --- | --- | --- | --- |
 | M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Integrated and verified | `6412285179774184537` |
 | M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Integrated in `2a8d515`; verified with descriptor-name adapter in `e44ddcc` | `4325102533201049110` |
-| M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | In progress; existing session remains active | `14253481875008285439` |
+| M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Coordinator commits `54444c0` and `82a0095`; validated by the full gate and included in the combined M03/M05 coordinator PR | `14253481875008285439` |
 | M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Integrated in `339b9fe`; XML name validation in `e44ddcc` | `9272682563869501346` |
-| M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
-| M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
-| M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
-| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | CI/scripts integrated; full parser gates pending | `8372780934571335340` |
+| M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Candidate committed as `ab728bd`; full gates pass after master sync `df70ad3`; included in the combined coordinator PR | `13446562686455561403` (retrieved; do not duplicate) |
+| M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | M06-A bounded structural stack dispatched from exact master base; remaining runtime work follows M05 integration | `6709002947009389318` |
+| M07 | Separate integration fixtures and executable typed consumer example | M06 | Acceptance review prepared; dispatch waits for M06's actual parser/sink contract | Not dispatched |
+| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | CI/scripts integrated; format/lint/tests/docs/no_std/MSRV/cross and current 100% line/function coverage gates pass; final parser gates pending | `8372780934571335340` |
 | M09 | Final supported profile, README, changelog, coverage/regression closure and version reference | M07, M08 | Planned | — |
 
 ## Open decision
@@ -49,3 +49,13 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - M02 and current common contracts: `CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh` passes after integration: 64 core unit tests, 100% line/function coverage across production modules, fmt, Clippy, docs, `no_std`, Rust 1.85 and ARM/RISC-V. Integration/consumer and parser-specific gates await M05–M07.
 - PR #2 merged as `44cc374`, integrating M01 (`aaae8e3`), M02 (`2a8d515`), M04 (`339b9fe`) and M08 (`b544fd6`), plus coordinator fixes. PRs #3, #4 and #5 were closed; their original session output is already represented by those integration commits.
 - PR #6 retains the Jules M02 commit `324b1fb` in its history and merges the integrated master fixes: shared positions, atomic cursor advancement, checked line/column arithmetic, CRLF state, and schema-compatible name validation. Its expanded API contract is corrected to match that implementation. `AGENTS.md` records the owner's requirement to avoid duplicate sessions and consume completed Jules output through reviewed integration.
+
+## Current coordinator status (2026-10-05)
+
+- GitHub CLI confirms PRs #1–#6 are merged into `master` and there are no open PRs. The synchronized `origin/master` base is `a3b52eddac5ce35b48b1dd263df9891149022520`.
+- The coordinator branch is `feature/m03-m05-parser`. It contains M03 commits `54444c0` and `82a0095`, M05 candidate `ab728bd`, and master-sync merge `df70ad3`. The earlier `feature/milestone-0.1.0` branch belongs to merged PR #2, so this integration uses a unique branch. No duplicate M03 or M05 session will be created.
+- M05 has 106 passing core unit tests. After the master-sync merge, `CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh` passes formatting, warnings-denied Clippy/docs, workspace tests, `no_std`, Rust 1.85, ARM/RISC-V, and strict LLVM coverage at 100% production lines and functions. Region coverage is 98.88%; it is not an M08 gate.
+- Jules M06-A session `6709002947009389318` starts from exact base `a3b52eddac5ce35b48b1dd263df9891149022520` and owns only `crates/core/src/state.rs` plus a private module declaration in `crates/core/src/lib.rs`. It must return as a PR and must not merge.
+- M07's acceptance review confirms that parser signature, facade re-exports, schema-version errors, and sink completion semantics must be fixed by M06 before integration tests are implemented. Dispatch M07 once those contracts are reviewable; do not duplicate dependent work.
+- PR #2 merged as `44cc374`, integrating M01 (`aaae8e3`), M02 (`2a8d515`), M04 (`339b9fe`) and M08 (`b544fd6`), plus coordinator fixes. PRs #1–#6 are now merged; earlier duplicate session output was reconciled into the merged implementation.
+- PR #6 retains Jules M02 commit `324b1fb` and includes the integrated cursor/name fixes and corrected API contract. `AGENTS.md` records the owner's console-only GitHub/Jules requirement, duplicate-session checks, and obligation to consume reviewed Jules work.
