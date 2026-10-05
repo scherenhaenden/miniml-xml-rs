@@ -9,10 +9,12 @@ pub mod budget;
 pub mod config;
 pub mod convert;
 pub mod cursor;
+pub mod entity;
 pub mod error;
 pub mod name;
 pub mod schema;
 pub mod sink;
+pub mod text;
 
 pub use budget::ResourceBudget;
 pub use config::{ParserConfig, ParserConfigBuilder};
