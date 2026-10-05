@@ -7,7 +7,10 @@
 
 pub mod budget;
 pub mod config;
+pub mod convert;
 pub mod error;
+pub mod schema;
+pub mod sink;
 
 pub use budget::ResourceBudget;
 pub use config::{ParserConfig, ParserConfigBuilder};
