@@ -1,6 +1,6 @@
 # Milestone 0.1.0 execution ledger
 
-Status: in progress. Coordinator branch: `feature/milestone-0.1.0`.
+Status: in progress. Coordinator branch: `feature/m06-progress-ledger`.
 
 ## Scope and completion
 
@@ -25,8 +25,10 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Integrated via PR #7 at `fbfd0cd`; full quality gates pass | `14253481875008285439` |
 | M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Integrated in `339b9fe`; XML name validation in `e44ddcc` | `9272682563869501346` |
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Integrated via PR #7 at `fbfd0cd`; full quality gates pass | `13446562686455561403` (retrieved; do not duplicate) |
-| M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | M06-A stack retrieved and reviewed; self-closing depth boundary corrected; 118 tests and full gates pass on `feature/m06-state-stack`; PR pending | `6709002947009389318` |
-| M07 | Separate integration fixtures and executable typed consumer example | M06 | Acceptance review prepared; dispatch waits for M06's actual parser/sink contract | Not dispatched |
+| M06-A | Bounded structural element stack | M04, M05 | Integrated via PR #8 at `d5c197f`; 118 core tests and full gates pass | `6709002947009389318` |
+| M06-B | Schema-validating parser and core/facade API | M06-A | In progress on exact base `d5c197f74ca2cef00a94a19abce31b313125b57f`; PR expected after checks | `7783618785134669031` |
+| M07-A | XML fixtures for the typed consumer slice | Independent of parser implementation; no runtime/test overlap | In progress; fixtures only, exact base `fbfd0cd042f3df313b4deaab46a95a3c2f242658` | `17172800555643325890` |
+| M07-B | Integration tests, embedded compile sample and typed consumer | M06-B, M07-A | Waiting for the parser facade contract and callback semantics | Not dispatched |
 | M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | CI/scripts integrated; format/lint/tests/docs/no_std/MSRV/cross and current 100% line/function coverage gates pass; final parser gates pending | `8372780934571335340` |
 | M09 | Final supported profile, README, changelog, coverage/regression closure and version reference | M07, M08 | Planned | — |
 
@@ -52,10 +54,11 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 
 ## Current coordinator status (2026-10-05)
 
-- GitHub CLI confirms PRs #1–#7 are merged into `master`. PR #7 integrated M03/M05 at `fbfd0cd`; its local technical CI and full coordinator gate passed. The no-version-bump choice was recorded for the unpublished intermediate milestone; the external bot check did not acknowledge the selection before merge.
-- The current coordinator branch is `feature/m06-state-stack`, based on `origin/master` at `fbfd0cd042f3df313b4deaab46a95a3c2f242658`. It contains the reviewed M06-A `state.rs`, a private module declaration, a zero-depth self-closing boundary fix, direct tests, and `docs/m06-contracts.md`.
+- GitHub CLI confirms PRs #1–#8 are merged into `master`. PR #7 integrated M03/M05 at `fbfd0cd`; PR #8 integrated the reviewed M06-A bounded stack at `d5c197f`. The no-version-bump choice was recorded for the unpublished intermediate milestone; the external bot check did not acknowledge the selection before merge.
+- The current coordinator ledger branch is `feature/m06-progress-ledger`, created from `origin/master` at `d5c197f`. The 0.1.0 milestone remains in progress; do not create its version tag until M07–M09 acceptance and release evidence are complete.
 - `CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh` passes after M06-A: 118 core unit tests, formatting, warnings-denied Clippy/docs, workspace tests, `no_std`, Rust 1.85, ARM/RISC-V, and strict LLVM coverage at 100% production lines and functions. Region coverage is 98.95%; it is not an M08 gate.
-- Jules M06-A session `6709002947009389318` completed from exact base `a3b52eddac5ce35b48b1dd263df9891149022520`. Its patch could not apply the stale `lib.rs` hunk after PR #7; the state module was retrieved without applying that hunk, then integrated against the current file. No replacement M06-A session was created.
-- M07's acceptance review confirms that parser signature, facade re-exports, schema-version errors, and sink completion semantics must be fixed by M06 before integration tests are implemented. Dispatch M07 once M06-B establishes those contracts; do not duplicate dependent work.
-- PR #2 merged as `44cc374`, integrating M01 (`aaae8e3`), M02 (`2a8d515`), M04 (`339b9fe`) and M08 (`b544fd6`), plus coordinator fixes. PRs #1–#6 are now merged; earlier duplicate session output was reconciled into the merged implementation.
-- PR #6 retains Jules M02 commit `324b1fb` and includes the integrated cursor/name fixes and corrected API contract. `AGENTS.md` records the owner's console-only GitHub/Jules requirement, duplicate-session checks, and obligation to consume reviewed Jules work.
+- Jules M06-A session `6709002947009389318` completed from exact base `a3b52eddac5ce35b48b1dd263df9891149022520`; its reviewed result is merged in PR #8. The coordinator fixed the zero-depth self-closing boundary and added direct regression tests before opening that PR.
+- M07's acceptance review confirms that parser signature, facade re-exports, and sink completion semantics must be fixed by M06 before integration tests are implemented. M07-A fixture files are independent and can proceed in parallel; dispatch M07-B only after M06-B establishes those contracts.
+- Jules M06-B session `7783618785134669031` is implementing the validating parser from exact base `d5c197f74ca2cef00a94a19abce31b313125b57f`. It owns the element-frame extension, core parser, core/facade re-exports, direct tests, and M06 contract update. It must open one reviewed PR and must not merge it.
+- Jules M07-A session `17172800555643325890` is independently adding fixture XML files only under `tests/fixtures/m07/**`, from base `fbfd0cd042f3df313b4deaab46a95a3c2f242658`. Its changes do not overlap M06-B. M07-B integration tests and the typed consumer wait for M06-B's actual facade and callback contracts.
+- PR #2 merged as `44cc374`, integrating M01 (`aaae8e3`), M02 (`2a8d515`), M04 (`339b9fe`) and M08 (`b544fd6`), plus coordinator fixes. PR #6 retains Jules M02 commit `324b1fb` and includes the integrated cursor/name fixes and corrected API contract. `AGENTS.md` records the owner's console-only GitHub/Jules requirement, duplicate-session checks, and obligation to consume reviewed Jules work.
