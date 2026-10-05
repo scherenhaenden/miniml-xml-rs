@@ -21,9 +21,9 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | ID | Deliverable / owned paths | Dependencies | State | Jules session |
 | --- | --- | --- | --- | --- |
 | M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Dispatched from `7411a31` | `6412285179774184537` |
-| M02 | UTF-8 cursor, positions and XML names | M01 | Planned | — |
-| M03 | Entity/reference decoding and fixed-capacity text representation | M01 | Planned | — |
-| M04 | Static schema descriptors, minimal integer conversion and sink contracts | M01 | Planned | — |
+| M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Ready | — |
+| M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Ready | — |
+| M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Ready | — |
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
 | M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
 | M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
@@ -35,6 +35,8 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 The owner selected MIT. Keep manifests unpublished during implementation. M01 records MSRV 1.85 and initial API/profile details as explicit implementation decisions.
 
 ## Evidence
+
+- Owner requires console-only Jules interaction and parallel dispatch wherever work is independent. M02–M04 can develop isolated modules using temporary rustc test harnesses while M01 supplies Cargo/common contracts; coordinator integrates adapters afterward. No bootstrap duplication or overlapping module ownership.
 
 - Initial repository: documentation only; PR #1 already merged; no implementation issues/PRs.
 - Initial coordinator base: `0a79dce66592119b83d8ea1da089b2e9a686b60a` (`origin/master`).
