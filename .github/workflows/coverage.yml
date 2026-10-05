@@ -25,8 +25,11 @@ jobs:
           rustup component add llvm-tools-preview
           cargo install cargo-llvm-cov --version 0.9.1 --locked
       - name: Run independent unit coverage
-        run: cargo llvm-cov --workspace --locked --lib --fail-under-lines 100 --fail-under-functions 100 --lcov --output-path target/coverage/unit.lcov
+        run: |
+          mkdir -p target/coverage
+          cargo llvm-cov --workspace --locked --lib --fail-under-lines 100 --fail-under-functions 100 --lcov --output-path target/coverage/unit.lcov
       - name: Preserve coverage evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: unit-coverage
