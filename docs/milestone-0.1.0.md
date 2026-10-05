@@ -27,7 +27,7 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
 | M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
 | M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
-| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M06 | Planned | — |
+| M08 | CI, independent coverage, MSRV/embedded and adversarial checks | M01; final execution after M06 | Dispatched from `aaae8e3` | `8372780934571335340` |
 | M09 | Final supported profile, README, changelog, coverage/regression closure and version reference | M07, M08 | Planned | — |
 
 ## Open decision
