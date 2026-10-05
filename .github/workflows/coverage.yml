@@ -1,0 +1,36 @@
+name: Coverage
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update stable --no-self-update && rustup default stable
+      - name: Install coverage tools
+        run: |
+          rustup component add llvm-tools-preview
+          cargo install cargo-llvm-cov --version 0.9.1 --locked
+      - name: Run independent unit coverage
+        run: |
+          mkdir -p target/coverage
+          cargo llvm-cov --workspace --locked --lib --fail-under-lines 100 --fail-under-functions 100 --lcov --output-path target/coverage/unit.lcov
+      - name: Preserve coverage evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: target/coverage/unit.lcov
