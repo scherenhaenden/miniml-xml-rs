@@ -21,24 +21,38 @@ pub fn is_xml_char(c: char) -> bool {
 #[derive(Debug, Clone)]
 pub struct Cursor<'a> {
     data: &'a str,
+    index: usize,
     pos: Position,
     previous_was_cr: bool,
 }
 
 impl<'a> Cursor<'a> {
     pub fn new(bytes: &'a [u8]) -> Result<Self, CursorError> {
+        Self::with_base_offset(bytes, 0)
+    }
+
+    pub(crate) fn with_base_offset(
+        bytes: &'a [u8],
+        base_offset: usize,
+    ) -> Result<Self, CursorError> {
+        if base_offset.checked_add(bytes.len()).is_none() {
+            return Err(CursorError::InvalidOffset {
+                offset: base_offset,
+            });
+        }
         match str::from_utf8(bytes) {
             Ok(s) => Ok(Self {
                 data: s,
+                index: 0,
                 pos: Position {
-                    byte_offset: 0,
+                    byte_offset: base_offset,
                     line: 1,
                     column: 1,
                 },
                 previous_was_cr: false,
             }),
             Err(e) => Err(CursorError::InvalidUtf8 {
-                offset: e.valid_up_to(),
+                offset: base_offset + e.valid_up_to(),
             }),
         }
     }
@@ -48,11 +62,11 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn remaining(&self) -> &'a str {
-        &self.data[self.pos.byte_offset..]
+        &self.data[self.index..]
     }
 
     pub fn is_eof(&self) -> bool {
-        self.pos.byte_offset >= self.data.len()
+        self.index >= self.data.len()
     }
 
     pub fn peek(&self) -> Result<Option<char>, CursorError> {
@@ -82,6 +96,7 @@ impl<'a> Cursor<'a> {
             next_pos.byte_offset += c.len_utf8();
             Self::update_pos(&mut next_pos, c, self.previous_was_cr)?;
             self.pos = next_pos;
+            self.index += c.len_utf8();
             self.previous_was_cr = c == '\r';
 
             Ok(Some(c))
@@ -91,16 +106,20 @@ impl<'a> Cursor<'a> {
     }
 
     pub fn advance(&mut self, bytes: usize) -> Result<(), CursorError> {
-        let to_consume_end =
-            self.pos
+        let to_consume_end = self
+            .index
+            .checked_add(bytes)
+            .ok_or(CursorError::InvalidOffset {
+                offset: self.pos.byte_offset,
+            })?;
+        if to_consume_end > self.data.len() {
+            let error_offset = self
+                .pos
                 .byte_offset
                 .checked_add(bytes)
-                .ok_or(CursorError::InvalidOffset {
-                    offset: self.pos.byte_offset,
-                })?;
-        if to_consume_end > self.data.len() {
+                .unwrap_or(self.pos.byte_offset);
             return Err(CursorError::InvalidOffset {
-                offset: to_consume_end,
+                offset: error_offset,
             });
         }
         if !self.data.is_char_boundary(to_consume_end) {
@@ -112,7 +131,7 @@ impl<'a> Cursor<'a> {
         let mut next_pos = self.pos;
         let mut current_offset = self.pos.byte_offset;
         let mut previous_was_cr = self.previous_was_cr;
-        for c in self.data[self.pos.byte_offset..to_consume_end].chars() {
+        for c in self.data[self.index..to_consume_end].chars() {
             if !is_xml_char(c) {
                 return Err(CursorError::InvalidXmlChar {
                     offset: current_offset,
@@ -124,6 +143,7 @@ impl<'a> Cursor<'a> {
             previous_was_cr = c == '\r';
         }
         self.pos = next_pos;
+        self.index = to_consume_end;
         self.previous_was_cr = previous_was_cr;
         Ok(())
     }
@@ -166,6 +186,35 @@ mod tests {
         assert_eq!(cursor.peek(), Ok(None));
         assert_eq!(cursor.consume(), Ok(None));
         assert_eq!(cursor.remaining(), "");
+    }
+
+    #[test]
+    fn base_offset_preserves_absolute_bytes_without_advancing_columns() {
+        let mut cursor = Cursor::with_base_offset("é\r\nx".as_bytes(), 3).unwrap();
+        assert_eq!(
+            cursor.position(),
+            Position {
+                byte_offset: 3,
+                line: 1,
+                column: 1,
+            }
+        );
+        assert_eq!(cursor.consume(), Ok(Some('é')));
+        assert_eq!(cursor.position().byte_offset, 5);
+        assert_eq!(cursor.position().column, 2);
+        assert_eq!(cursor.advance(2), Ok(()));
+        assert_eq!(cursor.position().byte_offset, 7);
+        assert_eq!(cursor.position().line, 2);
+        assert_eq!(cursor.position().column, 1);
+
+        assert_eq!(
+            Cursor::with_base_offset(b"a\xFF", 3).unwrap_err(),
+            CursorError::InvalidUtf8 { offset: 4 }
+        );
+        assert_eq!(
+            Cursor::with_base_offset(b"x", usize::MAX).unwrap_err(),
+            CursorError::InvalidOffset { offset: usize::MAX }
+        );
     }
 
     #[test]

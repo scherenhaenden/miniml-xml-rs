@@ -15,6 +15,7 @@ pub mod name;
 pub mod schema;
 pub mod sink;
 pub mod text;
+pub mod tokenizer;
 
 pub use budget::ResourceBudget;
 pub use config::{ParserConfig, ParserConfigBuilder};

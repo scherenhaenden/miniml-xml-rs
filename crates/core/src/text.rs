@@ -241,6 +241,17 @@ mod tests {
     }
 
     #[test]
+    fn zero_capacity_storage_accepts_empty_and_rejects_growth() {
+        let mut text = Text::<0>::new_owned();
+        assert_eq!(text.try_append_str("", 0), Ok(()));
+        assert_eq!(
+            text.try_append_char('x', 0),
+            Err(TextError::CapacityOverflow)
+        );
+        assert_eq!(text.as_str(), "");
+    }
+
+    #[test]
     fn test_try_append_overflow() {
         let mut t: Text<4> = Text::new_borrowed("hi");
         let res = t.try_append_str(" world", 4);
@@ -301,7 +312,7 @@ mod tests {
             decode_text::<9>("é中🚀".as_bytes(), NormalizeMode::ElementContent, 8),
             Err(TextError::CapacityOverflow)
         );
-        let empty: Text<0> = decode_text(b"", NormalizeMode::ElementContent, 100).unwrap();
+        let empty = Text::<0>::new_owned();
         assert_eq!(empty.as_str(), "");
         assert_eq!(
             decode_text::<4>(b"hello", NormalizeMode::ElementContent, 99),
@@ -440,11 +451,11 @@ mod tests {
     #[test]
     fn normalization_and_utf8_paths_propagate_capacity_errors() {
         assert_eq!(
-            decode_text::<1>(b"\r", NormalizeMode::ElementContent, 0),
+            decode_text::<4>(b"\r", NormalizeMode::ElementContent, 0),
             Err(TextError::CapacityOverflow)
         );
         assert_eq!(
-            decode_text::<1>(b"\t", NormalizeMode::Attribute, 0),
+            decode_text::<4>(b"\t", NormalizeMode::Attribute, 0),
             Err(TextError::CapacityOverflow)
         );
         assert_eq!(
@@ -491,6 +502,24 @@ mod tests {
         }
     }
 
+    fn expected_after_one_append(capacity: usize) -> &'static str {
+        if capacity > 0 {
+            "x"
+        } else {
+            ""
+        }
+    }
+
+    fn expected_after_two_appends(capacity: usize) -> &'static str {
+        if capacity > 1 {
+            "xy"
+        } else if capacity > 0 {
+            "x"
+        } else {
+            ""
+        }
+    }
+
     fn exercise_capacity<const N: usize>() {
         assert!(!needs_owned(b"plain", NormalizeMode::ElementContent));
         assert!(needs_owned(b"&amp;", NormalizeMode::ElementContent));
@@ -510,20 +539,16 @@ mod tests {
         assert_eq!(owned.as_str(), "");
         let append_char = owned.try_append_char('x', N);
         assert_eq!(append_char.is_ok(), N > 0);
-        assert_eq!(owned.as_str(), if N > 0 { "x" } else { "" });
+        assert_eq!(owned.as_str(), expected_after_one_append(N));
         let append_string = owned.try_append_str("y", N);
         assert_eq!(append_string.is_ok(), N > 1);
-        assert_eq!(
-            owned.as_str(),
-            if N > 1 {
-                "xy"
-            } else if N > 0 {
-                "x"
-            } else {
-                ""
-            }
-        );
+        assert_eq!(owned.as_str(), expected_after_two_appends(N));
+    }
 
+    fn exercise_decode_paths<const N: usize>() {
+        let clamped: Text<N> =
+            decode_text(b"", NormalizeMode::ElementContent, N.saturating_add(1)).unwrap();
+        assert_eq!(clamped.as_str(), "");
         let empty: Text<N> = decode_text(b"", NormalizeMode::ElementContent, N).unwrap();
         assert_eq!(empty.borrowed(), Some(""));
         let _ = decode_text::<N>(b"&amp;", NormalizeMode::ElementContent, N);
@@ -535,21 +560,29 @@ mod tests {
         let _ = decode_text::<N>(b"&unknown;", NormalizeMode::ElementContent, N);
         let _ = decode_text::<N>("&amp;é".as_bytes(), NormalizeMode::ElementContent, N);
         let _ = decode_text::<N>(b"&amp;\xEF\xBF\xBE", NormalizeMode::ElementContent, N);
-        let _ = decode_text::<N>(b"\xC3", NormalizeMode::ElementContent, N);
+        assert_eq!(
+            decode_text::<N>(b"\xC3", NormalizeMode::ElementContent, N),
+            Err(TextError::InvalidUtf8 { offset: 0 })
+        );
+        assert_eq!(
+            decode_text::<N>(b"\0", NormalizeMode::ElementContent, N),
+            Err(TextError::InvalidXmlCharacter { offset: 0 })
+        );
+        assert_eq!(
+            decode_text::<N>(b"&amp;\0", NormalizeMode::ElementContent, N),
+            Err(TextError::InvalidXmlCharacter { offset: 5 })
+        );
+        assert_eq!(
+            decode_text::<N>(b"&amp;\xC3", NormalizeMode::ElementContent, N),
+            Err(TextError::InvalidUtf8 { offset: 5 })
+        );
     }
 
     #[test]
-    fn every_capacity_instantiation_exercises_borrowed_and_owned_paths() {
+    fn minimum_and_configured_capacities_exercise_borrowed_and_owned_paths() {
         exercise_capacity::<0>();
         exercise_capacity::<1>();
-        exercise_capacity::<2>();
-        exercise_capacity::<3>();
-        exercise_capacity::<4>();
-        exercise_capacity::<8>();
-        exercise_capacity::<9>();
-        exercise_capacity::<10>();
-        exercise_capacity::<16>();
-        exercise_capacity::<20>();
-        exercise_capacity::<32>();
+        exercise_capacity::<{ crate::config::MAX_TEXT_BYTES }>();
+        exercise_decode_paths::<{ crate::config::MAX_TEXT_BYTES }>();
     }
 }
