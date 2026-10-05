@@ -253,6 +253,25 @@ mod tests {
     }
 
     #[test]
+    fn append_rejects_a_limit_below_existing_borrowed_or_owned_text() {
+        let mut borrowed: Text<8> = Text::new_borrowed("hello");
+        assert_eq!(
+            borrowed.try_append_str("", 4),
+            Err(TextError::CapacityOverflow)
+        );
+        assert_eq!(borrowed.as_str(), "hello");
+        assert!(borrowed.is_borrowed());
+
+        let mut owned: Text<8> = Text::new_owned();
+        owned.try_append_str("hello", 8).unwrap();
+        assert_eq!(
+            owned.try_append_str("", 4),
+            Err(TextError::CapacityOverflow)
+        );
+        assert_eq!(owned.as_str(), "hello");
+    }
+
+    #[test]
     fn append_materializes_borrowed_text_and_clamps_the_limit() {
         let mut text: Text<8> = decode_text(b"hi", NormalizeMode::ElementContent, 8).unwrap();
         text.try_append_char('!', 99).unwrap();
