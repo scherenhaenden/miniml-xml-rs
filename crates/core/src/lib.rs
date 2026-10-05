@@ -14,6 +14,7 @@ pub mod error;
 pub mod name;
 pub mod schema;
 pub mod sink;
+pub(crate) mod state;
 pub mod text;
 pub mod tokenizer;
 
