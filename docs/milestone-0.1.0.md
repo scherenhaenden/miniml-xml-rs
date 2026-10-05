@@ -21,9 +21,9 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | ID | Deliverable / owned paths | Dependencies | State | Jules session |
 | --- | --- | --- | --- | --- |
 | M01 | Workspace, core/facade skeleton, error/config/budget contracts, implementation ADR | None | Dispatched from `7411a31` | `6412285179774184537` |
-| M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Ready | — |
-| M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Ready | — |
-| M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Ready | — |
+| M02 | UTF-8 cursor, positions and XML names | Independent module; integration after M01 | Dispatched from `c692b13` | `4325102533201049110` |
+| M03 | Entity/reference decoding and fixed-capacity text representation | Independent module; integration after M01 | Dispatched from `c692b13` | `14253481875008285439` |
+| M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Dispatched from `c692b13` | `9272682563869501346` |
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Planned | — |
 | M06 | Bounded syntax/schema state machine and facade integration | M04, M05 | Planned | — |
 | M07 | Separate integration fixtures and executable typed consumer example | M06 | Planned | — |
