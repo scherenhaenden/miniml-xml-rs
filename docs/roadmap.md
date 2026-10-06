@@ -12,7 +12,7 @@ Status: This roadmap began as an implementation proposal. The workspace, parser 
 | Phase 3 - Schema runtime | Application-authored static SchemaNode model, order and cardinality validation. |
 | Phase 4 - Typed extraction | Additional primitive conversions and facets beyond the 0.1.0 typed consumer slice. |
 | Phase 5 - XSD codegen | Supported XSD frontend -> canonical IR -> deterministic Rust emitter. |
-| Phase 6 - Integration + N2N | Generated Rust sample applications and full schema-to-value path. |
+| Phase 6 - Integration + N2N | Rust sample applications generated from XSD models and their generated schema-to-value path. |
 | Phase 7 - C compatibility | C emitter + optional FFI crate + cross-language N2N suite. |
 | Phase 8 - Hardening | Broader differential testing vs miniML C, fuzzing, expanded mutation testing, benchmarks, security documentation. |
 | Phase 9 - Release | Semver/API review, MSRV lock, compatibility matrix, crates.io publication and release artifacts. |
@@ -28,7 +28,7 @@ The 0.1.0 consumer parses a root element with one required integer child and one
 | 0.1.0 | Tokenizer + validating parser for minimal application-authored static schemas; no_std; safe core. |
 | 0.2.0 | Additional primitive conversions and facets beyond the 0.1.0 typed slice; richer diagnostics. |
 | 0.3.0 | XSD subset generator producing Rust models and schema descriptors. |
-| 0.4.0 | Optional alloc conveniences and callbacks. |
+| 0.4.0 | Optional alloc conveniences and higher-level callback helpers. |
 | 0.5.0 | C artifact generation + C ABI preview. |
 | 0.9.0 | Compatibility/fuzz/mutation hardening and API freeze candidate. |
 | 1.0.0 | Stable supported XML/XSD profile, documented C ABI policy, full quality gates. |
