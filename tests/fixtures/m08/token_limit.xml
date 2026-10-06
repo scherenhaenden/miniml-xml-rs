@@ -1,0 +1,5 @@
+<root>
+    <child id="1">
+        <text>Hello</text>
+    </child>
+</root>
