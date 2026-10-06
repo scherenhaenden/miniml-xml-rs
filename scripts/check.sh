@@ -50,13 +50,28 @@ if [ "${CHECK_MUTATION:-0}" = "1" ]; then
         echo "Run: cargo install cargo-mutants"
         exit 1
     fi
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "Error: python3 is required to validate cargo-mutants evidence."
+        exit 1
+    fi
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_mutation_gate.py
+
     # Exclude only proven equivalents: ParserConfig::builder is Default::default,
     # and Schema::new fixes version to SCHEMA_VERSION (currently 1).
-    cargo mutants --workspace --jobs 4 --timeout 30 \
+    mutation_dir="$(mktemp -d "${TMPDIR:-/tmp}/miniml-xml-mutants.XXXXXX")"
+    echo "Raw mutation report: $mutation_dir/mutants.out"
+    mutation_status=0
+    if cargo mutants --workspace --jobs 4 --timeout 30 --output "$mutation_dir" \
         --file 'crates/core/src/{budget,config,convert,schema,validate,state}.rs' \
         --exclude-re 'replace ParserConfig::builder -> ParserConfigBuilder with Default::default\(\)' \
         --exclude-re 'replace Schema.*::version -> u32 with 1' \
-        -- --lib
+        -- --lib; then
+        mutation_status=0
+    else
+        mutation_status=$?
+    fi
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_mutation_results.py \
+        "$mutation_dir/mutants.out/outcomes.json" "$mutation_status"
 fi
 
 echo "All checks passed successfully."
