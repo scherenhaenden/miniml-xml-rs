@@ -1,0 +1,5 @@
+<root>
+    <child id="1">
+        <text>This text is way too long for the limited buffer we will set.</text>
+    </child>
+</root>

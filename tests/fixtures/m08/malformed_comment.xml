@@ -1,0 +1,6 @@
+<root>
+    <!-- malformed --->
+    <child id="1">
+        <text>Hello</text>
+    </child>
+</root>
