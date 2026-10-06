@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-06
+
 ### Added
-- Complete `no_std`, zero-allocation core parser with deterministic bounded execution (`miniml-xml-core`).
+- Bounded, allocation-free `no_std` core parser for the documented UTF-8 XML profile (`miniml-xml-core`).
 - User-facing facade crate (`miniml-xml`) providing the primary entry points and configuration.
-- Support for static schema descriptor validation (`Schema`, `SchemaNode`) without dynamic parsing.
+- Application-authored static schema descriptors (`Schema`, `SchemaNode`); no runtime XSD parsing.
 - Typed `TargetSink` extraction enforcing strict order, cardinality, and integer boundary checks (`i64`).
-- Comprehensive error model returning explicit position and categoric codes (`ParseError`, `ErrorKind`, `ErrorCode`).
-- Full UTF-8 tokenizer with entity decoding, newline normalization, and strict XML 1.0 (Fifth Edition) name validation.
-- Unit tests, facade consumer tests, an adversarial input corpus, and a bounded mutation gate.
+- Structured parse errors with positions and exact violation codes, plus schema-construction errors.
+- UTF-8 tokenizer for the supported XML subset, including entity decoding, newline normalization, and XML 1.0 (Fifth Edition) name validation.
+- Unit and facade consumer tests, a deterministic adversarial corpus, and a bounded mutation gate.
