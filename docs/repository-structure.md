@@ -8,7 +8,7 @@ Status: documentation baseline. This document records the original proposal or b
 miniml-xml-rs/
 ├── Cargo.toml                  # proposed workspace
 ├── README.md
-├── LICENSE                     # license decision pending
+├── LICENSE                     # MIT license
 ├── SECURITY.md
 ├── CONTRIBUTING.md
 ├── docs/
