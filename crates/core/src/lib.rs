@@ -17,6 +17,7 @@ pub mod sink;
 pub(crate) mod state;
 pub mod text;
 pub mod tokenizer;
+pub mod validate;
 
 pub use budget::ResourceBudget;
 pub use config::{ParserConfig, ParserConfigBuilder};
