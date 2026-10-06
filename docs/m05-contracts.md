@@ -24,7 +24,9 @@ attribute data they need before asking for another event.
 The tokenizer accepts XML 1.0 names, quoted attributes, text, comments, an
 optional initial UTF-8 BOM, an optional XML 1.0 declaration immediately after
 that BOM (or at byte zero when there is no BOM), and processing instructions
-only when `strict_processing_instructions` is disabled. Byte offsets continue
+only when `strict_processing_instructions` is disabled. Input is always UTF-8;
+an encoding declaration may name UTF-8 (case-insensitively), and any other
+declared encoding is rejected. Byte offsets continue
 to refer to the original input; the BOM does not advance document line or
 column positions. It enforces comment grammar, rejects duplicate attributes
 and missing separators, decodes predefined and numeric references through M03,
