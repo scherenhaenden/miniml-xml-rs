@@ -2,7 +2,7 @@
 
 Source: [architecture baseline v0.1, 5 October 2026](reference/embedded-xml-schema_project_specification.pdf), PDF pages 21, 24.
 
-Status: documentation baseline; the proposed implementation, APIs, builds and quality gates are not yet implemented. Repository name: `miniml-xml-rs`. Crate and ABI names in examples remain proposals from the source.
+Status: This roadmap began as an implementation proposal. The workspace, parser core, static schema runtime, typed Rust consumer, and base quality gates for 0.1.0 are integrated. Closure documentation and version evidence remain in progress in the [milestone ledger](milestone-0.1.0.md); the implemented behavior is described in the [supported profile](supported-profile.md). XSD generation, a C ABI, broader compatibility, fuzzing, and publication remain later roadmap work. Repository name: `miniml-xml-rs`; the Rust crates are `miniml-xml-core` and `miniml-xml`. ABI names in the source examples remain proposals until a C ABI is designed.
 
 | Phase | Deliverable |
 | --- | --- |
