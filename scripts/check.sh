@@ -50,11 +50,12 @@ if [ "${CHECK_MUTATION:-0}" = "1" ]; then
         echo "Run: cargo install cargo-mutants"
         exit 1
     fi
-    # Mutate the critical implemented modules. The builder replacement is exactly
-    # equivalent; see the documented M01 mutation baseline in the execution ledger.
+    # Exclude only proven equivalents: ParserConfig::builder is Default::default,
+    # and Schema::new fixes version to SCHEMA_VERSION (currently 1).
     cargo mutants --workspace --jobs 4 --timeout 30 \
         --file 'crates/core/src/{budget,config,convert,schema,validate,state}.rs' \
         --exclude-re 'replace ParserConfig::builder -> ParserConfigBuilder with Default::default\(\)' \
+        --exclude-re 'replace Schema.*::version -> u32 with 1' \
         -- --lib
 fi
 
