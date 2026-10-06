@@ -2,7 +2,7 @@
 
 Source: [architecture baseline v0.1, 5 October 2026](reference/embedded-xml-schema_project_specification.pdf), PDF pages 22-23.
 
-Status: documentation baseline; the proposed implementation, APIs, builds and quality gates are not yet implemented. Repository name: `miniml-xml-rs`. Crate and ABI names in examples remain proposals from the source.
+Status: This is the acceptance checklist for the eventual 1.0 release. See the [milestone-0.1.0 ledger](milestone-0.1.0.md) and [roadmap](roadmap.md) for the active supported profile and implemented 0.1.0 scope. Repository name: `miniml-xml-rs`; the Rust facade crate is `miniml-xml`. ABI names in source examples remain proposals until an optional C ABI is designed.
 
 | Area | Done when... |
 | --- | --- |
