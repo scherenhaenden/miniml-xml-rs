@@ -61,7 +61,7 @@ Run the mutation gate with:
 CHECK_MUTATION=1 sh scripts/check.sh
 ```
 
-The validator's seven acceptance/rejection tests run before every mutation
+The validator's nine acceptance/rejection tests run before every mutation
 pass using the Python 3 standard library; it adds no project runtime
 dependency.
 

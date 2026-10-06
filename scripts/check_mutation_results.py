@@ -34,7 +34,8 @@ def audit(payload: dict[str, Any], process_status: int) -> list[str]:
 
     counts: Counter[str] = Counter()
     baseline_count = 0
-    mutant_names: dict[str, list[str]] = {}
+    mutant_names: Counter[str] = Counter()
+    mutant_summaries: dict[str, list[str]] = {}
     timeout_signatures: list[str] = []
     for outcome in outcomes:
         scenario = outcome.get("scenario")
@@ -57,20 +58,45 @@ def audit(payload: dict[str, Any], process_status: int) -> list[str]:
         if not isinstance(name, str):
             errors.append("mutant outcome has no name")
             continue
-        mutant_names.setdefault(name, []).append(summary)
+        mutant_names[name] += 1
+        mutant_summaries.setdefault(name, []).append(summary)
+        phase_results = outcome.get("phase_results", [])
+        if not isinstance(phase_results, list):
+            errors.append(f"mutant phase results are not a list: {name}")
+            phase_results = []
+        phase_statuses: dict[str, Any] = {}
+        phase_timeouts = set()
+        for phase_result in phase_results:
+            if not isinstance(phase_result, dict):
+                errors.append(f"mutant has an invalid phase result: {name}")
+                continue
+            phase = phase_result.get("phase")
+            status = phase_result.get("process_status")
+            if not isinstance(phase, str) or "process_status" not in phase_result:
+                errors.append(f"mutant has an incomplete phase result: {name}")
+                continue
+            if phase in phase_statuses:
+                errors.append(f"mutant has duplicate phase results for {phase}: {name}")
+            phase_statuses[phase] = status
+            if status == "Timeout":
+                phase_timeouts.add(phase)
         if summary == "Timeout":
             timeout_signatures.append(name)
-            phase_statuses = {
-                phase.get("phase"): phase.get("process_status")
-                for phase in outcome.get("phase_results", [])
-            }
             if phase_statuses.get("Build") != "Success":
                 errors.append(f"timed-out mutant did not build successfully: {name}")
             if phase_statuses.get("Test") != "Timeout":
                 errors.append(f"timeout was not in the test phase: {name}")
+        elif phase_timeouts:
+            errors.append(
+                f"phase timed out but mutant outcome was {summary!r}: {name}"
+            )
 
     if baseline_count != 1:
         errors.append(f"expected one successful baseline, found {baseline_count}")
+
+    duplicated_names = sorted(name for name, count in mutant_names.items() if count > 1)
+    if duplicated_names:
+        errors.append("duplicate mutant outcome name(s): " + "; ".join(duplicated_names))
 
     for field in ("caught", "missed", "timeout", "unviable", "success"):
         reported = payload.get(field)
@@ -99,13 +125,13 @@ def audit(payload: dict[str, Any], process_status: int) -> list[str]:
         errors.append("caught mutant count fell below the reviewed baseline floor")
 
     for signature in sorted(EXPECTED_LIVENESS_MUTANTS):
-        summaries = mutant_names.get(signature)
-        if not summaries:
+        count = mutant_names.get(signature, 0)
+        if count == 0:
             errors.append(f"reviewed liveness mutant is missing: {signature}")
-        elif any(summary not in ("CaughtMutant", "Timeout") for summary in summaries):
+        elif count != 1:
+            errors.append(f"reviewed liveness mutant appeared {count} times: {signature}")
+        elif mutant_summaries[signature][0] not in ("CaughtMutant", "Timeout"):
             errors.append(f"reviewed liveness mutant was not caught or timed out: {signature}")
-        elif len(summaries) != 1:
-            errors.append(f"reviewed liveness mutant appeared {len(summaries)} times: {signature}")
 
     unexpected_timeouts = set(timeout_signatures) - EXPECTED_LIVENESS_MUTANTS
     if unexpected_timeouts:

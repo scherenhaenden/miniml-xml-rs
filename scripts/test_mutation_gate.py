@@ -94,6 +94,25 @@ class MutationGateTests(unittest.TestCase):
         report["outcomes"][1]["phase_results"][1]["process_status"] = "Failure"
         self.assertTrue(any("not in the test phase" in error for error in audit(report, 3)))
 
+    def test_rejects_a_timeout_phase_hidden_by_a_non_timeout_summary(self):
+        report = passing_report()
+        report["outcomes"][4]["phase_results"] = [
+            {"phase": "Build", "process_status": "Success"},
+            {"phase": "Test", "process_status": "Timeout"},
+        ]
+        errors = audit(report, 3)
+        self.assertTrue(any("phase timed out but mutant outcome" in error for error in errors))
+
+    def test_rejects_duplicate_names_for_any_mutant(self):
+        report = passing_report()
+        first_ordinary_mutant = report["outcomes"][4]
+        second_ordinary_mutant = report["outcomes"][5]
+        second_ordinary_mutant["scenario"]["Mutant"]["name"] = (
+            first_ordinary_mutant["scenario"]["Mutant"]["name"]
+        )
+        errors = audit(report, 3)
+        self.assertTrue(any("duplicate mutant outcome name" in error for error in errors))
+
 
 if __name__ == "__main__":
     unittest.main()
