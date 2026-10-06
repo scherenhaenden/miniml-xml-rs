@@ -1,6 +1,6 @@
 # Supported Profile
 
-This document describes the XML subset, static schema behavior, and resource bounds implemented for the `0.1.0` milestone. The package and version tag are not published yet.
+This document describes the XML subset, static schema behavior, and resource bounds implemented for the `0.1.0` milestone. Rust package publication is disabled; the annotated Git tag `v0.1.0` identifies the release commit.
 
 ## XML Profile
 

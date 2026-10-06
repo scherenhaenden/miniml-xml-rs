@@ -1,8 +1,9 @@
 # Milestone 0.1.0 quality gates
 
-This file records the executable gates and the evidence actually collected for
-the 0.1.0 workspace. M07 consumer and M08 adversarial tests are integrated;
-the final combined gate run and M09 release evidence remain outstanding.
+This file records the executable gates and evidence collected for the 0.1.0
+workspace. M07 consumer tests, M08 adversarial tests, the final combined gate,
+and M09 release evidence are complete. The final release record is in the
+[milestone ledger](milestone-0.1.0.md).
 
 ## Executable checks
 
@@ -23,7 +24,7 @@ On coordinator commit `293b7468aa05e5ec591c9a6d82d56c5f153cb43f` (M06-B, PR
 Region coverage was 99.08%; it is not a release gate. M07-B and M08-B were
 subsequently integrated in PRs #15 and #16, and each PR's coverage, formatting,
 Clippy, workspace tests, docs, `no_std`, MSRV, and cross-target checks passed.
-Run the combined command again on the final tree after M09 changes.
+The complete-tree release rerun after M09 is recorded below.
 
 ## Mutation evidence
 
@@ -74,9 +75,8 @@ CHECK_MUTATION=1 CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh
 
 That run included the M07 consumer and M08 adversarial suites, 135 core unit
 tests, 100% production line/function coverage, Rust 1.85, and both embedded
-targets. Region coverage was 99.08%; it is not a release gate. Run the same
-command again after the M09 documentation PR is merged to record final-tree
-evidence.
+targets. Region coverage was 99.08%; it is not a release gate. The final
+post-M09 run is recorded below.
 
 The script excludes two behaviorally equivalent replacements, each with a
 specific reason:
@@ -92,7 +92,7 @@ recorded: text state resets between sibling string elements, and an empty
 append after exactly reaching a text limit remains accepted. These cases cover
 the parser's fixed-buffer accumulation behavior without allocating.
 
-## Remaining milestone evidence
+## Completed milestone evidence
 
 * PR #15 merged M07-B at `81979781177f5334a8c6af113ea245bd16d2c277`.
   Its 13 public-facade tests cover typed output, malformed and schema failures,
@@ -101,10 +101,15 @@ the parser's fixed-buffer accumulation behavior without allocating.
 * PR #16 merged M08-B at `b119d218e200c405a4cc50415a6f18de3e273dcd` with 11
   deterministic adversarial integration tests. Its complete GitHub check set,
   including 100% production line/function coverage, passed.
-* Complete M09's supported-profile documentation, README and changelog, then
-  re-run the full combined command on the final merged tree before recording
-  release readiness. Create the `v0.1.0` Git tag only after that run. Do not
-  publish a registry package as part of 0.1.0.
+* M09-A through M09-E are integrated in PRs #18–#22. The final combined command
+  `CHECK_MUTATION=1 CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh`
+  passed on release-prep commit `82e25c6356bc1f6014f079d153ad5ee3c093a5b5`:
+  135 core tests, 100% production line/function coverage, Rust 1.85, `no_std`,
+  ARM/RISC-V, and 223 mutants (212 caught, 8 unviable, 3 reviewed
+  non-progressing test timeouts, zero missed or surviving).
+* Annotated tag `v0.1.0` is pushed and peels to release merge
+  `1498867e31d75a67373ba153bd204153339d63bd`. The crate is not published to a
+  registry. PR #23 records the release completion; its checks passed.
 
 The future XSD generator and C ABI are outside this milestone, as recorded in
 the roadmap; neither is silently treated as a 0.1.0 gate.
