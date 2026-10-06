@@ -6,10 +6,13 @@ use crate::error::{ErrorCode, ErrorKind, ParseError, Position};
 pub(crate) struct ElementStack<'a> {
     names: [&'a str; MAX_DEPTH],
     positions: [Position; MAX_DEPTH],
+    pub(crate) schema_node_ids: [u16; MAX_DEPTH],
+    pub(crate) child_indices: [usize; MAX_DEPTH],
+    pub(crate) child_occurrences: [usize; MAX_DEPTH],
+    pub(crate) child_counts: [usize; MAX_DEPTH],
     len: usize,
     max_depth: usize,
     has_root: bool,
-    closed_root: bool,
 }
 
 #[allow(dead_code)]
@@ -18,15 +21,23 @@ impl<'a> ElementStack<'a> {
         Self {
             names: [""; MAX_DEPTH],
             positions: [Position::default(); MAX_DEPTH],
+            schema_node_ids: [0; MAX_DEPTH],
+            child_indices: [0; MAX_DEPTH],
+            child_occurrences: [0; MAX_DEPTH],
+            child_counts: [0; MAX_DEPTH],
             len: 0,
             max_depth: max_depth.min(MAX_DEPTH),
             has_root: false,
-            closed_root: false,
         }
     }
 
-    pub(crate) fn push(&mut self, name: &'a str, pos: Position) -> Result<(), ParseError> {
-        if self.closed_root || (self.len == 0 && self.has_root) {
+    pub(crate) fn push(
+        &mut self,
+        name: &'a str,
+        pos: Position,
+        node_id: u16,
+    ) -> Result<(), ParseError> {
+        if self.len == 0 && self.has_root {
             return Err(ParseError::new(
                 ErrorKind::Syntax,
                 ErrorCode::MultipleRoot,
@@ -44,10 +55,22 @@ impl<'a> ElementStack<'a> {
 
         self.names[self.len] = name;
         self.positions[self.len] = pos;
+        self.schema_node_ids[self.len] = node_id;
+        self.child_indices[self.len] = 0;
+        self.child_occurrences[self.len] = 0;
+        self.child_counts[self.len] = 0;
         self.len += 1;
         self.has_root = true;
 
         Ok(())
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.len
+    }
+
+    pub(crate) fn top_name(&self) -> Option<&'a str> {
+        self.len.checked_sub(1).map(|index| self.names[index])
     }
 
     pub(crate) fn pop(&mut self, name: &str, pos: Position) -> Result<(), ParseError> {
@@ -61,15 +84,11 @@ impl<'a> ElementStack<'a> {
         }
 
         self.len -= 1;
-        if self.len == 0 {
-            self.closed_root = true;
-        }
-
         Ok(())
     }
 
     pub(crate) fn self_close(&mut self, _name: &'a str, pos: Position) -> Result<(), ParseError> {
-        if self.closed_root || (self.len == 0 && self.has_root) {
+        if self.len == 0 && self.has_root {
             return Err(ParseError::new(
                 ErrorKind::Syntax,
                 ErrorCode::MultipleRoot,
@@ -88,10 +107,6 @@ impl<'a> ElementStack<'a> {
         }
 
         self.has_root = true;
-        if self.len == 0 {
-            self.closed_root = true;
-        }
-
         Ok(())
     }
 
@@ -124,8 +139,8 @@ mod tests {
     fn test_nesting() {
         let mut stack = ElementStack::new(5);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("root", pos).is_ok());
-        assert!(stack.push("child", pos).is_ok());
+        assert!(stack.push("root", pos, 0).is_ok());
+        assert!(stack.push("child", pos, 1).is_ok());
         assert!(stack.pop("child", pos).is_ok());
         assert!(stack.pop("root", pos).is_ok());
         assert!(stack.finish(pos).is_ok());
@@ -135,7 +150,7 @@ mod tests {
     fn test_matching_close() {
         let mut stack = ElementStack::new(5);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("root", pos).is_ok());
+        assert!(stack.push("root", pos, 0).is_ok());
         assert!(stack.pop("root", pos).is_ok());
         assert!(stack.finish(pos).is_ok());
     }
@@ -144,8 +159,8 @@ mod tests {
     fn test_mismatched_close() {
         let mut stack = ElementStack::new(5);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("root", pos).is_ok());
-        assert!(stack.push("child", pos).is_ok());
+        assert!(stack.push("root", pos, 0).is_ok());
+        assert!(stack.push("child", pos, 1).is_ok());
 
         let err = stack.pop("wrong", pos).unwrap_err();
         assert_eq!(err.kind, ErrorKind::Syntax);
@@ -169,10 +184,10 @@ mod tests {
     fn test_multiple_roots() {
         let mut stack = ElementStack::new(5);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("root1", pos).is_ok());
+        assert!(stack.push("root1", pos, 0).is_ok());
         assert!(stack.pop("root1", pos).is_ok());
 
-        let err = stack.push("root2", pos).unwrap_err();
+        let err = stack.push("root2", pos, 1).unwrap_err();
         assert_eq!(err.kind, ErrorKind::Syntax);
         assert_eq!(err.code, ErrorCode::MultipleRoot);
 
@@ -200,7 +215,7 @@ mod tests {
     fn test_incomplete_input() {
         let mut stack = ElementStack::new(5);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("root", pos).is_ok());
+        assert!(stack.push("root", pos, 0).is_ok());
 
         let err = stack.finish(pos).unwrap_err();
         assert_eq!(err.kind, ErrorKind::Syntax);
@@ -211,9 +226,9 @@ mod tests {
     fn test_exact_depth() {
         let mut stack = ElementStack::new(3);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("a", pos).is_ok());
-        assert!(stack.push("b", pos).is_ok());
-        assert!(stack.push("c", pos).is_ok());
+        assert!(stack.push("a", pos, 0).is_ok());
+        assert!(stack.push("b", pos, 1).is_ok());
+        assert!(stack.push("c", pos, 2).is_ok());
         assert!(stack.pop("c", pos).is_ok());
         assert!(stack.pop("b", pos).is_ok());
         assert!(stack.pop("a", pos).is_ok());
@@ -224,10 +239,10 @@ mod tests {
     fn test_depth_overflow() {
         let mut stack = ElementStack::new(2);
         let pos = Position::new(0, 1, 1);
-        assert!(stack.push("a", pos).is_ok());
-        assert!(stack.push("b", pos).is_ok());
+        assert!(stack.push("a", pos, 0).is_ok());
+        assert!(stack.push("b", pos, 1).is_ok());
 
-        let err = stack.push("c", pos).unwrap_err();
+        let err = stack.push("c", pos, 2).unwrap_err();
         assert_eq!(err.kind, ErrorKind::Resource);
         assert_eq!(err.code, ErrorCode::Resource);
 
@@ -240,7 +255,7 @@ mod tests {
         let pos = Position::new(4, 1, 5);
 
         let mut no_depth = ElementStack::new(0);
-        let error = no_depth.push("root", pos).unwrap_err();
+        let error = no_depth.push("root", pos, 0).unwrap_err();
         assert_eq!(error.kind, ErrorKind::Resource);
         assert_eq!(error.code, ErrorCode::Resource);
         assert_eq!(error.position, pos);
@@ -252,11 +267,10 @@ mod tests {
         assert_eq!(error.code, ErrorCode::Resource);
         assert_eq!(error.position, pos);
         assert!(!no_depth.has_root);
-        assert!(!no_depth.closed_root);
         assert_eq!(no_depth.len, 0);
 
         let mut nested_at_limit = ElementStack::new(1);
-        nested_at_limit.push("root", pos).unwrap();
+        nested_at_limit.push("root", pos, 0).unwrap();
         let error = nested_at_limit.self_close("child", pos).unwrap_err();
         assert_eq!(error.kind, ErrorKind::Resource);
         assert_eq!(error.code, ErrorCode::Resource);
@@ -264,7 +278,6 @@ mod tests {
         assert_eq!(nested_at_limit.len, 1);
         assert_eq!(nested_at_limit.names[0], "root");
         assert_eq!(nested_at_limit.positions[0], pos);
-        assert!(!nested_at_limit.closed_root);
     }
 
     #[test]
@@ -273,9 +286,9 @@ mod tests {
         let mut stack = ElementStack::new(MAX_DEPTH + 1);
 
         for _ in 0..MAX_DEPTH {
-            stack.push("item", pos).unwrap();
+            stack.push("item", pos, 0).unwrap();
         }
-        let error = stack.push("overflow", pos).unwrap_err();
+        let error = stack.push("overflow", pos, 0).unwrap_err();
         assert_eq!(error.kind, ErrorKind::Resource);
         assert_eq!(error.code, ErrorCode::Resource);
         assert_eq!(stack.len, MAX_DEPTH);
