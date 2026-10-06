@@ -109,8 +109,15 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - PR #18 merged as `30690b292dc47db02088df897415de6cb76a9677`. The tokenizer now accepts only UTF-8 encoding declarations (case-insensitively); `UTF-16` and `US-ASCII` declarations are rejected. Formatting, Clippy, 135 core tests, integration/docs, coverage, MSRV 1.85, ARM/RISC-V, and PR CI pass.
 - Do not create `v0.1.0` until final-tree verification passes; package publication remains disabled.
 
-## Current coordinator status after PRs #19–#21 (2026-10-06)
+## Coordinator status before PR #22 (2026-10-06)
 
 - `master` is at `f27d23f59e10edd96dce26881cf3a92c267e0198`. PR #19 integrated the supported profile, runnable quick start and changelog; PR #20 clarified the 1.0 acceptance, requirements and roadmap; PR #21 refreshed the remaining status notes. All three PRs were reviewed and passed their checks before merge.
 - M09-A through M09-D are integrated. Jules M09-D session `1690077990446459119` completed from exact source base `30690b292dc47db02088df897415de6cb76a9677`; its reviewed ten-paragraph diff and coordinator clarification are integrated by PR #21 at `f27d23f59e10edd96dce26881cf3a92c267e0198`.
 - The final complete-tree command `CHECK_MUTATION=1 CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh` passed on release-prep commit `82e25c6356bc1f6014f079d153ad5ee3c093a5b5`: 135 core tests, 100% production line/function coverage, Rust 1.85, `no_std`, ARM/RISC-V, and 223 mutants (212 caught, 8 unviable, 3 reviewed non-progressing test timeouts, 0 missed, 0 surviving). Region coverage was 99.08%; only line and function coverage are release gates. The changelog records 0.1.0 dated 2026-10-06; PR #22 is open and the annotated tag remains pending. Package publication remains disabled.
+
+## Release completion and version tag (2026-10-06)
+
+- PR #22 completed M09-E and merged to `master` as `1498867e31d75a67373ba153bd204153339d63bd`; its source branch was based on `f27d23f59e10edd96dce26881cf3a92c267e0198`.
+- The annotated tag `v0.1.0` is pushed. Tag object `e1ceea0076c001f56d201164f8dc30104d6c68ce` peels to release merge `1498867e31d75a67373ba153bd204153339d63bd`.
+- The complete-tree gate passed on release-prep commit `82e25c6356bc1f6014f079d153ad5ee3c093a5b5` with `CHECK_MUTATION=1 CHECK_MSRV=1 CHECK_CROSS=1 CHECK_COVERAGE=1 sh scripts/check.sh`: 135 core tests, 100% production line/function coverage, Rust 1.85, `no_std`, ARM/RISC-V, and 223 mutants (212 caught, 8 unviable, 3 reviewed non-progressing test timeouts in `Schema::check_graph`, zero missed or surviving). Region coverage was 99.08%; the release gates require line and function coverage.
+- PR #22 passed review and all reported checks. The GitHub CLI showed no open PRs after its merge. Package publication remains disabled.
