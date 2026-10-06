@@ -4,7 +4,7 @@ Status: in progress.
 
 ## Scope and completion
 
-The first public milestone in `roadmap.md` is 0.1.0: tokenizer and validating parser for minimal static schema descriptors, a safe `no_std` core, and the first typed vertical slice (root, required integer child, optional string attribute). Static descriptors are authored directly until the 0.3.0 XSD generator milestone. The complete 1.0.0 acceptance checklist remains the release roadmap, not a claim about 0.1.0.
+The first public milestone in `docs/roadmap.md` is 0.1.0: tokenizer and validating parser for minimal static schema descriptors, a safe `no_std` core, and the first typed vertical slice (root, required integer child, optional string attribute). Static descriptors are authored directly until the 0.3.0 XSD generator milestone. The complete 1.0.0 acceptance checklist remains the release roadmap, not a claim about 0.1.0.
 
 Completion requires workspace formatting, lint and documentation checks; stable/MSRV and embedded builds; independent 100% production line/function unit coverage; separate integration and consumer checks; deterministic resource rejection and malformed-input regressions; a documented supported profile; version 0.1.0 manifests, changelog and Git version reference. No completion claim precedes evidence.
 
@@ -26,12 +26,12 @@ Completion requires workspace formatting, lint and documentation checks; stable/
 | M04 | Static schema descriptors, minimal integer conversion and sink contracts | Independent module; integration after M01 | Integrated in `339b9fe`; XML name validation in `e44ddcc` | `9272682563869501346` |
 | M05 | Tokenizer: tags, attributes, text, comments, explicit unsupported features | M02, M03 | Integrated via PR #7 at `fbfd0cd`; full quality gates pass | `13446562686455561403` (retrieved; do not duplicate) |
 | M06-A | Bounded structural element stack | M04, M05 | Integrated via PR #8 at `d5c197f`; 118 core tests and full gates pass | `6709002947009389318` |
-| M06-B | Schema-validating parser and core/facade API | M06-A | Coordinator-recovered implementation committed at `293b746`; PR #13 open; full local checks pass | `7783618785134669031` (original session failed; no duplicate created) |
+| M06-B | Schema-validating parser and core/facade API | M06-A | Integrated by PR #13 at `1c80851`; full local and PR checks pass | `7783618785134669031` (original session failed; coordinator recovered its work without a duplicate) |
 | M07-A | XML fixtures for the typed consumer slice | Independent of parser implementation; no runtime/test overlap | Integrated via PR #10 at `b1748ef`; 11 fixtures reviewed and syntax-validated | `17172800555643325890` |
-| M07-B | Integration tests, embedded compile sample and typed consumer | M06-B, M07-A | Ready to dispatch after PR #13 is merged; use existing PR #10/#11 fixtures | Not dispatched |
-| M08 | Base CI, independent coverage, MSRV and embedded gates | M01; final execution after M06 | Integrated; base format/lint/tests/docs/no_std/MSRV/cross and 100% line/function coverage gates pass; parser-specific gates remain | `8372780934571335340` |
-| M08-A | Correct quality-gate status docs and run bounded mutation baseline on existing modules | M08; independent of M06-B, with no `validate.rs` assumption | Jules completed; coordinator reconciled its output with M06-B and current mutation evidence; PR #12 open | `1752884590832168457` (base `1a10f1820e3bb494a44598d582e1ed055b8a341f`) |
-| M08-B | Add bounded malformed/adversarial smoke coverage and extend mutation evidence to parser validation | M06-B, M08-A | Ready to run in parallel with M07-B after PR #13 merges; separate owned test/script paths | Not dispatched |
+| M07-B | Integration tests, embedded compile sample and typed consumer | M06-B, M07-A | Jules working from exact base `1fbf9e31783a123ff41a3db16905f0bcb129e526`; reuses PR #10 fixtures | `4078684291427294237` |
+| M08 | CI, independent coverage, MSRV/embedded and adversarial gates | M01; final execution after M06 | Base gates and M06 coverage pass; M07 consumer, bounded adversarial smoke and three mutation timeouts remain | `8372780934571335340` |
+| M08-A | Correct quality-gate status docs and run bounded mutation baseline on existing modules | M08; independent of M06-B, with no `validate.rs` assumption | Integrated by PR #12 at `1fbf9e3`; current mutation evidence records three timeouts and zero missed mutants | `1752884590832168457` (base `1a10f1820e3bb494a44598d582e1ed055b8a341f`) |
+| M08-B | Add bounded malformed/adversarial smoke coverage | M06-B, M08-A | Jules working from exact base `1fbf9e31783a123ff41a3db16905f0bcb129e526`; owns separate test and fixture paths | `1203790517305183261` |
 | M09 | Final supported profile, README, changelog, coverage/regression closure and version reference | M07, M08 | Planned | — |
 
 ## Open decision
@@ -67,7 +67,7 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - The M08-A audit confirms the base CI currently covers formatting, warnings-denied Clippy/docs, unit and doctest runs, no_std, MSRV 1.85, ARM/RISC-V and separate 100% production line/function coverage. Parser integration/consumer tests, malformed/adversarial smoke and mutation evidence for validation remain unproven until their dependent work is integrated.
 - PR #2 merged as `44cc374`, integrating M01 (`aaae8e3`), M02 (`2a8d515`), M04 (`339b9fe`) and M08 (`b544fd6`), plus coordinator fixes. PR #6 retains Jules M02 commit `324b1fb` and includes the integrated cursor/name fixes and corrected API contract. `AGENTS.md` records the owner's console-only GitHub/Jules requirement, duplicate-session checks, and obligation to consume reviewed Jules work.
 
-## Current coordinator status (2026-10-06)
+## Coordinator status before the M06-B and M08-A merges (2026-10-06)
 
 - PRs #12 and #13 are open. PR #13 contains M06-B commit `293b7468aa05e5ec591c9a6d82d56c5f153cb43f` on exact base `d5c197f74ca2cef00a94a19abce31b313125b57f`; GitHub checks are still running. Its local full gate passed with 135 core tests, 100% line/function coverage, MSRV 1.85, `no_std`, and both embedded targets.
 - The original Jules M06-B session `7783618785134669031` failed. The coordinator recovered and corrected the work on that session's exact base; no replacement M06-B session was created. A read-only independent review found no blocking issue.
@@ -75,3 +75,12 @@ The owner selected MIT. Keep manifests unpublished during implementation. M01 re
 - Jules M08-A session `1752884590832168457` is completed. Its retrieved diff contained a stale mutation description and a `scripts/check.sh` regression that omitted `validate.rs`; the coordinator retained parser validation in the mutation scope and updated its documented evidence. PR #12 records the reconciled ledger, script and quality-gate document.
 - PR #10/#11 already integrate the M07-A fixtures. After M06 PR #13 merges, M07-B consumer tests and M08-B adversarial smoke can run concurrently on disjoint paths. They are not dispatched yet, avoiding a stale API base.
 - M09 and the `v0.1.0` tag remain pending until M07/M08 checks and release documentation are complete.
+
+## Current coordinator status after PR #12 and PR #13 (2026-10-06)
+
+- `master` is at `1fbf9e31783a123ff41a3db16905f0bcb129e526`. PR #13 integrated M06-B as merge commit `1c80851ee92920c1752d9a846f7672d88b1a9753`; PR #12 integrated the reconciled M08-A ledger, mutation evidence and scripts as merge commit `1fbf9e31783a123ff41a3db16905f0bcb129e526`. Both PRs were approved and all reported checks passed before merge.
+- M06-B is implemented and integrated. Its 135 core tests pass; CI verifies formatting, lint, unit and integration/doc tests, docs, `no_std`, MSRV 1.85, coverage and ARM/RISC-V checks. The mutation run is recorded separately under M08: 223 tested, 212 caught, 8 unviable, 3 timed out in `Schema::check_graph`, zero missed; the command did not finish with a clean mutation status.
+- M07-A fixtures are integrated by PR #10 and recorded by PR #11. M07-B session `4078684291427294237` was created against this exact `master` commit. It owns `crates/facade/tests/m07_consumer.rs` and two M07 facade examples, reads `tests/fixtures/m07`, and must produce a focused PR without touching runtime, manifests, CI/scripts or this ledger.
+- M08-A session `1752884590832168457` is integrated by PR #12. M08-B session `1203790517305183261` was created against the same exact `master` commit. It owns `crates/facade/tests/m08_adversarial.rs` and `tests/fixtures/m08/`; it must produce a focused PR without touching M07 files, runtime, manifests, CI/scripts, quality-gate docs or this ledger.
+- The M07-B and M08-B sessions were checked against the Jules registry, existing branches and PRs before dispatch. They have distinct task IDs and file ownership and run in parallel; there are two newly active milestone tasks, below the ten-task cap. No open PRs remained when they were created.
+- The coordinator is tracking their results through Jules and will review, correct, test and integrate each PR before updating this ledger with its integration commit. M09 and the `v0.1.0` tag remain pending until M07/M08 acceptance and release evidence are complete.
