@@ -380,7 +380,12 @@ impl<'a> Tokenizer<'a> {
 
             let (name, value) = self.parse_declaration_attribute(position)?;
             match name {
-                "encoding" if !seen_encoding && !seen_standalone && valid_encoding_name(value) => {
+                "encoding"
+                    if !seen_encoding
+                        && !seen_standalone
+                        && valid_encoding_name(value)
+                        && value.eq_ignore_ascii_case(b"UTF-8") =>
+                {
                     seen_encoding = true;
                 }
                 "standalone" if !seen_standalone && matches!(value, b"yes" | b"no") => {
@@ -911,6 +916,8 @@ mod tests {
             b"<?xml version=1.0?>",
             b"<?xml version '1.0'?>",
             b"<?xml version='1.0' encoding=''?>",
+            b"<?xml version='1.0' encoding='UTF-16'?>",
+            b"<?xml version='1.0' encoding='US-ASCII'?>",
             b"<?xml version='1.0' encoding='1UTF-8'?>",
             b"<?xml version='1.0' encoding='UTF+8'?>",
             b"<?xml encoding='UTF-8' version='1.0'?>",
@@ -941,6 +948,9 @@ mod tests {
         let mut tokenizer = make(valid);
         assert_eq!(tokenizer.next().unwrap(), Event::Eof);
         assert!(error(valid, ParserConfig::default()).is_none());
+
+        let valid_lowercase = b"<?xml version='1.0' encoding='utf-8'?>";
+        assert!(error(valid_lowercase, ParserConfig::default()).is_none());
     }
 
     #[test]
